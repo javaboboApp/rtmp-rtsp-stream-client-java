@@ -1,6 +1,7 @@
 <resources>
   <string name="app_name">RTMP-RTSP Streamer</string>
   <string name="version">Version: %1$s</string>
+  <string name="start_webserver">Start server</string>
 
   <string name="rtsp_streamer">Custom RTSP</string>
   <string name="rtmp_streamer">Custom RTMP</string>
