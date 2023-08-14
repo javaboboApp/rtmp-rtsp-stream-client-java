@@ -158,11 +158,11 @@ class WebServerViewActivity : AppCompatActivity(), View.OnClickListener, Connect
             navigationView?.getMenu()?.findItem(R.id.cb_noise_suppressor)?.actionView as CheckBox?
         //radiobuttons
         rbTcp = navigationView?.getMenu()?.findItem(R.id.rb_tcp)?.actionView as RadioButton?
-        rbUdp = navigationView?.getMenu()?.findItem(R.id.rb_udp)?.actionView as RadioButton?
+//        rbUdp = navigationView?.getMenu()?.findItem(R.id.rb_udp)?.actionView as RadioButton?
         rgChannel = navigationView?.getMenu()?.findItem(R.id.channel)?.actionView as RadioGroup?
         rbTcp!!.isChecked = true
         rbTcp!!.setOnClickListener(this)
-        rbUdp!!.setOnClickListener(this)
+//        rbUdp!!.setOnClickListener(this)
         //spinners
         spResolution = navigationView?.getMenu()?.findItem(R.id.sp_resolution)?.actionView as Spinner?
         val orientationAdapter =
@@ -458,12 +458,14 @@ class WebServerViewActivity : AppCompatActivity(), View.OnClickListener, Connect
                 rbUdp!!.isChecked = false
                 rbTcp!!.isChecked = true
             }
-        } else if (id == R.id.rb_udp) {
-            if (rbTcp!!.isChecked) {
-                rbTcp!!.isChecked = false
-                rbUdp!!.isChecked = true
-            }
         }
+
+//        else if (id == R.id.rb_udp) {
+//            if (rbTcp!!.isChecked) {
+//                rbTcp!!.isChecked = false
+//                rbUdp!!.isChecked = true
+//            }
+//        }
     }
 
     private fun prepareEncoders(): Boolean {

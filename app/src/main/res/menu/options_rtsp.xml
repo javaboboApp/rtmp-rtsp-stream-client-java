@@ -9,11 +9,11 @@
           app:actionViewClass="android.widget.RadioButton"
           android:id="@+id/rb_tcp"
           />
-      <item
-          android:title="@string/udp"
-          app:actionViewClass="android.widget.RadioButton"
-          android:id="@+id/rb_udp"
-          />
+<!--      <item-->
+<!--          android:title="@string/udp"-->
+<!--          app:actionViewClass="android.widget.RadioButton"-->
+<!--          android:id="@+id/rb_udp"-->
+<!--          />-->
     </menu>
   </item>
   <item android:title="@string/video">

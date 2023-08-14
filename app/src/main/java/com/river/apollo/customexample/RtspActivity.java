@@ -146,11 +146,11 @@ public class RtspActivity extends AppCompatActivity
         (CheckBox) navigationView.getMenu().findItem(R.id.cb_noise_suppressor).getActionView();
     //radiobuttons
     rbTcp = (RadioButton) navigationView.getMenu().findItem(R.id.rb_tcp).getActionView();
-    rbUdp = (RadioButton) navigationView.getMenu().findItem(R.id.rb_udp).getActionView();
+//    rbUdp = (RadioButton) navigationView.getMenu().findItem(R.id.rb_udp).getActionView();
     rgChannel = (RadioGroup) navigationView.getMenu().findItem(R.id.channel).getActionView();
     rbTcp.setChecked(true);
     rbTcp.setOnClickListener(this);
-    rbUdp.setOnClickListener(this);
+//    rbUdp.setOnClickListener(this);
     //spinners
     spResolution = (Spinner) navigationView.getMenu().findItem(R.id.sp_resolution).getActionView();
 
@@ -304,12 +304,14 @@ public class RtspActivity extends AppCompatActivity
         rbUdp.setChecked(false);
         rbTcp.setChecked(true);
       }
-    } else if (id == R.id.rb_udp) {
-      if (rbTcp.isChecked()) {
-        rbTcp.setChecked(false);
-        rbUdp.setChecked(true);
-      }
     }
+    
+//    else if (id == R.id.rb_udp) {
+//      if (rbTcp.isChecked()) {
+//        rbTcp.setChecked(false);
+//        rbUdp.setChecked(true);
+//      }
+//    }
   }
 
   private boolean prepareEncoders() {
