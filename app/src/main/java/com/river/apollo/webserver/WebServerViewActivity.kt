@@ -1,5 +1,6 @@
 package com.river.apollo.webserver
 
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.view.MotionEvent
@@ -24,15 +25,13 @@ import com.google.android.material.navigation.NavigationView
 import com.pedro.encoder.input.video.CameraHelper
 import com.pedro.encoder.input.video.CameraOpenException
 import com.pedro.rtplibrary.rtsp.RtspCamera1
-
-import com.river.apollo.utils.PathUtils
 import com.pedro.rtsp.rtsp.Protocol
 import com.pedro.rtsp.utils.ConnectCheckerRtsp
 import com.river.apollo.R
 import com.river.apollo.utils.NetworkUtils
+import com.river.apollo.utils.PathUtils
 import java.io.File
 import java.io.IOException
-import java.net.NetworkInterface
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -69,6 +68,8 @@ class WebServerViewActivity : AppCompatActivity(), View.OnClickListener, Connect
     private var etWowzaPassword: EditText? = null
     private var lastVideoBitrate: String? = null
     private var tvBitrate: TextView? = null
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_web_server_view)
@@ -199,7 +200,11 @@ class WebServerViewActivity : AppCompatActivity(), View.OnClickListener, Connect
     private fun startWebServer() {
         try {
             server = WebServer( port = 8080, streamingUrl = "") // Use your desired port
+
+
             server?.start()
+
+
         } catch (e: IOException) {
             e.printStackTrace()
         }
