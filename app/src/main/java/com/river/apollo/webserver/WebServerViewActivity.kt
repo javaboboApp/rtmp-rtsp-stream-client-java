@@ -11,18 +11,18 @@ import com.river.apollo.R
 import com.river.apollo.utils.NetworkUtils
 import com.river.libstreaming.Session
 import com.river.libstreaming.SessionBuilder
+import com.river.libstreaming.audio.AudioQuality
 import com.river.libstreaming.gl.SurfaceView
 import com.river.libstreaming.rtsp.RtspServer
+import com.river.libstreaming.video.VideoQuality
 import java.io.IOException
 import java.lang.Exception
-
 
 
 class WebServerViewActivity : AppCompatActivity() {
 
     private var server: WebServer? = null
     private lateinit var surfaceView: SurfaceView
-
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,8 +33,9 @@ class WebServerViewActivity : AppCompatActivity() {
     }
 
     private fun initViews() {
-        surfaceView =  findViewById<com.river.libstreaming.gl.SurfaceView>(R.id.surfaceView)
-        findViewById<TextView>(R.id.ip_tv).text = "http://${NetworkUtils.getLocalIpAddress(this)}:8080"
+        surfaceView = findViewById<com.river.libstreaming.gl.SurfaceView>(R.id.surfaceView)
+        findViewById<TextView>(R.id.ip_tv).text =
+            "http://${NetworkUtils.getLocalIpAddress(this)}:8080"
     }
 
 
@@ -69,19 +70,22 @@ class WebServerViewActivity : AppCompatActivity() {
                 .setContext(applicationContext)
                 .setAudioEncoder(SessionBuilder.AUDIO_AAC)
                 .setVideoEncoder(SessionBuilder.VIDEO_H264)
+                .setPreviewOrientation(90)
+                .setAudioQuality(AudioQuality(16000, 32000))
+                .setVideoQuality(VideoQuality(320, 240, 20, 500000))
                 .setSurfaceView(surfaceView)
                 .setCallback(object : Session.Callback {
                     override fun onBitrateUpdate(bitrate: Long) {
-                       Log.d("onBitrateUpdate","bitatrate updated $bitrate")
+                        Log.d("onBitrateUpdate", "bitatrate updated $bitrate")
                     }
 
                     override fun onSessionError(reason: Int, streamType: Int, e: Exception?) {
-                        Log.d("onSessionError","reason  $reason")
+                        Log.d("onSessionError", "reason  $reason")
 
                     }
 
                     override fun onPreviewStarted() {
-                        Log.d("onSessionError","onPreviewStarted")
+                        Log.d("onSessionError", "onPreviewStarted")
                     }
 
                     override fun onSessionConfigured() {
@@ -106,15 +110,6 @@ class WebServerViewActivity : AppCompatActivity() {
             e.printStackTrace()
         }
     }
-
-
-
-
-
-
-
-
-
 
 
 }
