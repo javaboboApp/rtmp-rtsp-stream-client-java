@@ -3,7 +3,6 @@ package com.river.apollo;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
@@ -18,22 +17,7 @@ import android.widget.AdapterView;
 import android.widget.GridView;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import com.river.apollo.backgroundexample.BackgroundActivity;
-import com.river.apollo.customexample.RtmpActivity;
 import com.river.apollo.customexample.RtspActivity;
-import com.river.apollo.defaultexample.ExampleRtmpActivity;
-import com.river.apollo.defaultexample.ExampleRtspActivity;
-import com.river.apollo.displayexample.DisplayActivity;
-import com.river.apollo.filestreamexample.RtmpFromFileActivity;
-import com.river.apollo.filestreamexample.RtspFromFileActivity;
-import com.river.apollo.openglexample.OpenGlRtmpActivity;
-import com.river.apollo.openglexample.OpenGlRtspActivity;
-import com.river.apollo.rotation.RotationExampleActivity;
-import com.river.apollo.surfacemodeexample.SurfaceModeRtmpActivity;
-import com.river.apollo.surfacemodeexample.SurfaceModeRtspActivity;
-import com.river.apollo.texturemodeexample.TextureModeRtmpActivity;
-import com.river.apollo.texturemodeexample.TextureModeRtspActivity;
 import com.river.apollo.utils.ActivityLink;
 import com.river.apollo.utils.ImageAdapter;
 import com.river.apollo.webserver.WebServerViewActivity;
@@ -94,36 +78,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     activities = new ArrayList<>();
     activities.add(new ActivityLink(new Intent(this, WebServerViewActivity.class),
             getString(R.string.start_webserver), JELLY_BEAN));
-    activities.add(new ActivityLink(new Intent(this, RtmpActivity.class),
-        getString(R.string.rtmp_streamer), JELLY_BEAN));
+
     activities.add(new ActivityLink(new Intent(this, RtspActivity.class),
         getString(R.string.rtsp_streamer), JELLY_BEAN));
-    activities.add(new ActivityLink(new Intent(this, ExampleRtmpActivity.class),
-        getString(R.string.default_rtmp), JELLY_BEAN));
-    activities.add(new ActivityLink(new Intent(this, ExampleRtspActivity.class),
-        getString(R.string.default_rtsp), JELLY_BEAN));
-    activities.add(new ActivityLink(new Intent(this, RtmpFromFileActivity.class),
-        getString(R.string.from_file_rtmp), JELLY_BEAN_MR2));
-    activities.add(new ActivityLink(new Intent(this, RtspFromFileActivity.class),
-        getString(R.string.from_file_rtsp), JELLY_BEAN_MR2));
-    activities.add(new ActivityLink(new Intent(this, SurfaceModeRtmpActivity.class),
-        getString(R.string.surface_mode_rtmp), LOLLIPOP));
-    activities.add(new ActivityLink(new Intent(this, SurfaceModeRtspActivity.class),
-        getString(R.string.surface_mode_rtsp), LOLLIPOP));
-    activities.add(new ActivityLink(new Intent(this, TextureModeRtmpActivity.class),
-        getString(R.string.texture_mode_rtmp), LOLLIPOP));
-    activities.add(new ActivityLink(new Intent(this, TextureModeRtspActivity.class),
-        getString(R.string.texture_mode_rtsp), LOLLIPOP));
-    activities.add(new ActivityLink(new Intent(this, OpenGlRtmpActivity.class),
-        getString(R.string.opengl_rtmp), JELLY_BEAN_MR2));
-    activities.add(new ActivityLink(new Intent(this, OpenGlRtspActivity.class),
-        getString(R.string.opengl_rtsp), JELLY_BEAN_MR2));
-    activities.add(new ActivityLink(new Intent(this, DisplayActivity.class),
-        getString(R.string.display_rtmp), LOLLIPOP));
-    activities.add(new ActivityLink(new Intent(this, BackgroundActivity.class),
-        getString(R.string.service_rtp), LOLLIPOP));
-    activities.add(new ActivityLink(new Intent(this, RotationExampleActivity.class),
-        getString(R.string.rotation_rtmp), LOLLIPOP));
   }
 
   private void setListAdapter(List<ActivityLink> activities) {
