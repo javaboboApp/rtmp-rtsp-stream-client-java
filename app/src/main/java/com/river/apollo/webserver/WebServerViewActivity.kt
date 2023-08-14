@@ -1,6 +1,5 @@
 package com.river.apollo.webserver
 
-import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.view.MotionEvent
@@ -30,14 +29,19 @@ import com.pedro.rtsp.utils.ConnectCheckerRtsp
 import com.river.apollo.R
 import com.river.apollo.utils.NetworkUtils
 import com.river.apollo.utils.PathUtils
+import com.river.libstreaming.Session
+import com.river.libstreaming.SessionBuilder
+import com.river.libstreaming.rtsp.RtspServer
 import java.io.File
 import java.io.IOException
+import java.lang.Exception
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 
-class WebServerViewActivity : AppCompatActivity(), View.OnClickListener, ConnectCheckerRtsp, SurfaceHolder.Callback,
+class WebServerViewActivity : AppCompatActivity(), View.OnClickListener, ConnectCheckerRtsp,
+    SurfaceHolder.Callback,
     View.OnTouchListener {
     private var server: WebServer? = null
 
@@ -46,7 +50,7 @@ class WebServerViewActivity : AppCompatActivity(), View.OnClickListener, Connect
     private var rtspCamera1: RtspCamera1? = null
     private var surfaceView: SurfaceView? = null
     private var bStartStop: Button? = null
-    private  var bRecord:android.widget.Button? = null
+    private var bRecord: android.widget.Button? = null
     private var currentDateAndTime = ""
     private var folder: File? = null
 
@@ -56,15 +60,15 @@ class WebServerViewActivity : AppCompatActivity(), View.OnClickListener, Connect
     private var actionBarDrawerToggle: ActionBarDrawerToggle? = null
     private var rgChannel: RadioGroup? = null
     private var rbTcp: RadioButton? = null
-    private  var rbUdp:RadioButton? = null
+    private var rbUdp: RadioButton? = null
     private var spResolution: Spinner? = null
     private var cbEchoCanceler: CheckBox? = null
-    private  var cbNoiseSuppressor:CheckBox? = null
+    private var cbNoiseSuppressor: CheckBox? = null
     private var etVideoBitrate: EditText? = null
-    private  var etFps:EditText? = null
-    private  var etAudioBitrate:EditText? = null
-    private  var etSampleRate:EditText? = null
-    private  var etWowzaUser:EditText? = null
+    private var etFps: EditText? = null
+    private var etAudioBitrate: EditText? = null
+    private var etSampleRate: EditText? = null
+    private var etWowzaUser: EditText? = null
     private var etWowzaPassword: EditText? = null
     private var lastVideoBitrate: String? = null
     private var tvBitrate: TextView? = null
@@ -79,7 +83,8 @@ class WebServerViewActivity : AppCompatActivity(), View.OnClickListener, Connect
     }
 
     private fun initViews() {
-         findViewById<TextView>(R.id.ip_tv).text = "http://${NetworkUtils.getLocalIpAddress(this)}:8080"
+        findViewById<TextView>(R.id.ip_tv).text =
+            "http://${NetworkUtils.getLocalIpAddress(this)}:8080"
     }
 
 
@@ -101,6 +106,7 @@ class WebServerViewActivity : AppCompatActivity(), View.OnClickListener, Connect
         val switchCamera = findViewById<Button>(R.id.switch_camera)
         switchCamera.setOnClickListener(this)
     }
+
     private fun prepareOptionsMenuViews() {
         drawerLayout = findViewById(R.id.activity_custom)
         navigationView = findViewById(R.id.nv_rtp)
@@ -128,7 +134,8 @@ class WebServerViewActivity : AppCompatActivity(), View.OnClickListener, Connect
                         ).show()
                     } else {
                         Toast.makeText(
-                            this@WebServerViewActivity, "Bitrate on fly ignored, Required min API 19",
+                            this@WebServerViewActivity,
+                            "Bitrate on fly ignored, Required min API 19",
                             Toast.LENGTH_SHORT
                         ).show()
                     }
@@ -149,7 +156,8 @@ class WebServerViewActivity : AppCompatActivity(), View.OnClickListener, Connect
         rbTcp!!.setOnClickListener(this)
 //        rbUdp!!.setOnClickListener(this)
         //spinners
-        spResolution = navigationView?.getMenu()?.findItem(R.id.sp_resolution)?.actionView as Spinner?
+        spResolution =
+            navigationView?.getMenu()?.findItem(R.id.sp_resolution)?.actionView as Spinner?
         val orientationAdapter =
             ArrayAdapter<Int>(this, android.R.layout.simple_spinner_dropdown_item)
         orientationAdapter.addAll(*orientations)
@@ -167,7 +175,8 @@ class WebServerViewActivity : AppCompatActivity(), View.OnClickListener, Connect
         etFps = navigationView?.getMenu()?.findItem(R.id.et_fps)?.actionView as EditText?
         etAudioBitrate =
             navigationView?.getMenu()?.findItem(R.id.et_audio_bitrate)?.actionView as EditText?
-        etSampleRate = navigationView?.getMenu()?.findItem(R.id.et_samplerate)?.actionView as EditText?
+        etSampleRate =
+            navigationView?.getMenu()?.findItem(R.id.et_samplerate)?.actionView as EditText?
         etVideoBitrate!!.setText("2500")
         etFps!!.setText("30")
         etAudioBitrate!!.setText("128")
@@ -199,8 +208,40 @@ class WebServerViewActivity : AppCompatActivity(), View.OnClickListener, Connect
 
     private fun startWebServer() {
         try {
-            server = WebServer( port = 8080, streamingUrl = "") // Use your desired port
+            server = WebServer(port = 8080, streamingUrl = "") // Use your desired port
 
+            val mRtspServer = RtspServer()
+
+            // Configure the streaming session
+            SessionBuilder.getInstance()
+                .setContext(applicationContext)
+                .setAudioEncoder(SessionBuilder.AUDIO_AAC)
+                .setVideoEncoder(SessionBuilder.VIDEO_H264)
+                .setCallback(object : Session.Callback {
+                    override fun onBitrateUpdate(bitrate: Long) {
+
+                    }
+
+                    override fun onSessionError(reason: Int, streamType: Int, e: Exception?) {
+                    }
+
+                    override fun onPreviewStarted() {
+                    }
+
+                    override fun onSessionConfigured() {
+                    }
+
+                    override fun onSessionStarted() {
+                    }
+
+                    override fun onSessionStopped() {
+                    }
+
+                })
+
+            mRtspServer.start()
+
+            SessionBuilder.getInstance().build().start()
 
             server?.start()
 
@@ -215,13 +256,18 @@ class WebServerViewActivity : AppCompatActivity(), View.OnClickListener, Connect
 
     override fun onConnectionSuccessRtsp() {
         runOnUiThread {
-            Toast.makeText(this@WebServerViewActivity, "Connection success", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this@WebServerViewActivity, "Connection success", Toast.LENGTH_SHORT)
+                .show()
         }
     }
 
     override fun onConnectionFailedRtsp(reason: String) {
         runOnUiThread {
-            Toast.makeText(this@WebServerViewActivity, "Connection failed. $reason", Toast.LENGTH_SHORT)
+            Toast.makeText(
+                this@WebServerViewActivity,
+                "Connection failed. $reason",
+                Toast.LENGTH_SHORT
+            )
                 .show()
             rtspCamera1!!.stopStream()
             bStartStop!!.text = resources.getString(R.string.start_button)
@@ -301,7 +347,7 @@ class WebServerViewActivity : AppCompatActivity(), View.OnClickListener, Connect
     }
 
 
-  override  fun surfaceCreated(surfaceHolder: SurfaceHolder) {
+    override fun surfaceCreated(surfaceHolder: SurfaceHolder) {
         drawerLayout!!.openDrawer(GravityCompat.START)
     }
 
