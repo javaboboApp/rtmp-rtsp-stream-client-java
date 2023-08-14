@@ -35,7 +35,8 @@ dependencies {
   implementation project(':rtplibrary')
   implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
   implementation 'com.google.android.material:material:1.9.0'
-
+  implementation 'com.github.fyhertz.libstreaming:libstreaming:4.0.1'
+  implementation 'com.pedro:rtmp-rtsp-stream-client-java:4.4.0'
   implementation 'org.nanohttpd:nanohttpd:2.2.0'
   implementation 'androidx.appcompat:appcompat:1.6.1'
 }
