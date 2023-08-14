@@ -29,6 +29,7 @@ import com.river.apollo.utils.PathUtils
 import com.pedro.rtsp.rtsp.Protocol
 import com.pedro.rtsp.utils.ConnectCheckerRtsp
 import com.river.apollo.R
+import com.river.apollo.utils.NetworkUtils
 import java.io.File
 import java.io.IOException
 import java.net.NetworkInterface
@@ -77,27 +78,10 @@ class WebServerViewActivity : AppCompatActivity(), View.OnClickListener, Connect
     }
 
     private fun initViews() {
-         findViewById<TextView>(R.id.ip_tv).text = " http://${getLocalIpAddress()}:8080"
+         findViewById<TextView>(R.id.ip_tv).text = "http://${NetworkUtils.getLocalIpAddress(this)}:8080"
     }
 
-    private fun getLocalIpAddress(): String? {
-        try {
-            val networkInterfaces = NetworkInterface.getNetworkInterfaces()
-            while (networkInterfaces.hasMoreElements()) {
-                val networkInterface = networkInterfaces.nextElement()
-                val inetAddresses = networkInterface.inetAddresses
-                while (inetAddresses.hasMoreElements()) {
-                    val inetAddress = inetAddresses.nextElement()
-                    if (!inetAddress.isLoopbackAddress && inetAddress.hostAddress.indexOf(':') == -1) {
-                        return inetAddress.hostAddress
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        return "N/A"
-    }
+
     private fun setUpWebCamLogic() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         folder = PathUtils.getRecordPath()
@@ -214,7 +198,7 @@ class WebServerViewActivity : AppCompatActivity(), View.OnClickListener, Connect
 
     private fun startWebServer() {
         try {
-            server = WebServer(8080) // Use your desired port
+            server = WebServer( port = 8080, streamingUrl = "") // Use your desired port
             server?.start()
         } catch (e: IOException) {
             e.printStackTrace()

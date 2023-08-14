@@ -83,6 +83,7 @@
                 android:layout_margin="20dp"
                 android:background="@color/black"
                 android:padding="8dp"
+                android:visibility="gone"
                 android:textColor="@color/white"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"

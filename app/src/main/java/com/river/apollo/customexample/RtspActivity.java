@@ -305,7 +305,7 @@ public class RtspActivity extends AppCompatActivity
         rbTcp.setChecked(true);
       }
     }
-    
+
 //    else if (id == R.id.rb_udp) {
 //      if (rbTcp.isChecked()) {
 //        rbTcp.setChecked(false);
