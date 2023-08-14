@@ -76,11 +76,15 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
   @SuppressLint("NewApi")
   private void createList() {
     activities = new ArrayList<>();
+
     activities.add(new ActivityLink(new Intent(this, WebServerViewActivity.class),
-            getString(R.string.start_webserver), JELLY_BEAN));
+            getString(R.string.local_server), JELLY_BEAN));
 
     activities.add(new ActivityLink(new Intent(this, RtspActivity.class),
         getString(R.string.rtsp_streamer), JELLY_BEAN));
+
+    activities.add(new ActivityLink(new Intent(this, RtspActivity.class),
+            getString(R.string.settings), JELLY_BEAN));
   }
 
   private void setListAdapter(List<ActivityLink> activities) {
