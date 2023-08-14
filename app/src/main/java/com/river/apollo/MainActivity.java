@@ -77,11 +77,11 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
   private void createList() {
     activities = new ArrayList<>();
 
-    activities.add(new ActivityLink(new Intent(this, WebServerViewActivity.class),
-            getString(R.string.local_server), JELLY_BEAN));
-
     activities.add(new ActivityLink(new Intent(this, RtspActivity.class),
         getString(R.string.rtsp_streamer), JELLY_BEAN));
+
+    activities.add(new ActivityLink(new Intent(this, WebServerViewActivity.class),
+            getString(R.string.local_server), JELLY_BEAN));
 
     activities.add(new ActivityLink(new Intent(this, RtspActivity.class),
             getString(R.string.settings), JELLY_BEAN));

@@ -47,7 +47,6 @@ class WebServerViewActivity : AppCompatActivity(), View.OnClickListener, Connect
     private var surfaceView: SurfaceView? = null
     private var bStartStop: Button? = null
     private  var bRecord:android.widget.Button? = null
-    private var etUrl: EditText? = null
     private var currentDateAndTime = ""
     private var folder: File? = null
 
@@ -102,8 +101,6 @@ class WebServerViewActivity : AppCompatActivity(), View.OnClickListener, Connect
     private fun setUpWebCamLogic() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         folder = PathUtils.getRecordPath()
-        supportActionBar!!.setDisplayHomeAsUpEnabled(true)
-        supportActionBar!!.setHomeButtonEnabled(true)
 
         surfaceView = findViewById(R.id.surfaceView)
         surfaceView?.getHolder()?.addCallback(this)
@@ -112,12 +109,10 @@ class WebServerViewActivity : AppCompatActivity(), View.OnClickListener, Connect
         prepareOptionsMenuViews()
 
         tvBitrate = findViewById(R.id.tv_bitrate)
-        etUrl = findViewById(R.id.et_rtp_url)
-        etUrl?.setHint(R.string.hint_rtsp)
-        bStartStop = findViewById(R.id.b_start_stop)
-        bStartStop?.setOnClickListener(this)
-        bRecord = findViewById(R.id.b_record)
-        bRecord?.setOnClickListener(this)
+//        bStartStop = findViewById(R.id.b_start_stop)
+//        bStartStop?.setOnClickListener(this)
+//        bRecord = findViewById(R.id.b_record)
+//        bRecord?.setOnClickListener(this)
         val switchCamera = findViewById<Button>(R.id.switch_camera)
         switchCamera.setOnClickListener(this)
     }
@@ -377,7 +372,7 @@ class WebServerViewActivity : AppCompatActivity(), View.OnClickListener, Connect
                     rtspCamera1!!.setAuthorization(user, password)
                 }
                 if (rtspCamera1!!.isRecording || prepareEncoders()) {
-                    rtspCamera1!!.startStream(etUrl!!.text.toString())
+//                    rtspCamera1!!.startStream(etUrl!!.text.toString())
                 } else {
                     //If you see this all time when you start stream,
                     //it is because your encoder device dont support the configuration
