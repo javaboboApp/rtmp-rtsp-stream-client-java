@@ -3,6 +3,7 @@ package com.river.apollo;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
@@ -73,6 +74,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     setListAdapter(activities);
     requestPermissions();
   }
+
+
 
   private void requestPermissions() {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
