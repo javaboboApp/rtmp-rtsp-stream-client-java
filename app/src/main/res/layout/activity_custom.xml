@@ -23,7 +23,7 @@
             android:layout_margin="20dp"
             android:gravity="center"
             android:inputType="textUri"
-            android:text="rtsp://167.235.110.66:8554/mystream"
+            android:text="rtsp://167.233.14.30:8554/helloworld"
             android:textColor="@color/appColor"
             android:textColorHint="@color/appColor"
             app:layout_constraintTop_toTopOf="parent" />

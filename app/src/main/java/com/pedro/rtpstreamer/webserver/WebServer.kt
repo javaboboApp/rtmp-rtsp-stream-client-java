@@ -5,7 +5,8 @@ import fi.iki.elonen.NanoHTTPD
 
 class WebServer(port: Int) : NanoHTTPD(port) {
     override fun serve(session: IHTTPSession): Response {
-
+ // vue.js
+        // build (htl..
 
         var msg = "<html><body><h1>Hello server</h1>\n"
         val parms = session.parms
