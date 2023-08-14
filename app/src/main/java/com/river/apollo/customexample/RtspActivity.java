@@ -60,11 +60,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * More documentation see:
- * {@link com.pedro.rtplibrary.base.Camera1Base}
- * {@link com.pedro.rtplibrary.rtsp.RtspCamera1}
- */
+
 public class RtspActivity extends AppCompatActivity
     implements Button.OnClickListener, ConnectCheckerRtsp, SurfaceHolder.Callback,
     View.OnTouchListener {
@@ -96,8 +92,6 @@ public class RtspActivity extends AppCompatActivity
     getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     setContentView(R.layout.activity_custom);
     folder = PathUtils.getRecordPath();
-    getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-    getSupportActionBar().setHomeButtonEnabled(true);
 
     surfaceView = findViewById(R.id.surfaceView);
     surfaceView.getHolder().addCallback(this);
