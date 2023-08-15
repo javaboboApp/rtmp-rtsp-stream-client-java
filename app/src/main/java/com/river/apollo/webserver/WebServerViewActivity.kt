@@ -5,7 +5,6 @@ import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.preference.PreferenceManager
-import android.util.Log
 import android.view.View
 import android.view.WindowManager
 import android.widget.ImageView
@@ -26,7 +25,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.IOException
 
-
+private const val TAG = "WebServerViewActivity"
 class WebServerViewActivity : AppCompatActivity(), Session.Callback {
 
     private var session: Session? = null
@@ -42,8 +41,7 @@ class WebServerViewActivity : AppCompatActivity(), Session.Callback {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_web_server_view)
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        setupWindowsFeatures()
         getLocalIp()
         initListeners()
         initViews()
@@ -52,6 +50,14 @@ class WebServerViewActivity : AppCompatActivity(), Session.Callback {
             startWebServer()
         }
 
+    }
+
+    private fun setupWindowsFeatures() {
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        val decorView = window.decorView
+        val uiOptions = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_FULLSCREEN
+        decorView.systemUiVisibility = uiOptions
     }
 
     private fun getLocalIp() {
@@ -66,14 +72,18 @@ class WebServerViewActivity : AppCompatActivity(), Session.Callback {
 
 
     private fun initListeners() {
-        findViewById<ImageView>(com.river.apollo.R.id.start_webserver_bt).setOnClickListener {
+        findViewById<ImageView>(R.id.start_webserver_bt).setOnClickListener {
             // Start the server
             startWebServer()
         }
 
-        findViewById<ImageView>(com.river.apollo.R.id.stop_webserver_bt).setOnClickListener {
+        findViewById<ImageView>(R.id.stop_webserver_bt).setOnClickListener {
             // Stop the server
             stopWebserver()
+        }
+
+        findViewById<ImageView>(R.id.switch_camera).setOnClickListener {
+            session?.switchCamera()
         }
     }
 

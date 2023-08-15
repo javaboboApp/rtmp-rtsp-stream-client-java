@@ -35,6 +35,7 @@
         android:usesCleartextTraffic="true">
         <activity
             android:name=".webserver.WebServerViewActivity"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar.FullScreen"
             android:exported="false" />
         <activity
             android:name=".MainActivity"
