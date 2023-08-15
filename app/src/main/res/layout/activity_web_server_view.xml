@@ -51,7 +51,7 @@
                     android:layout_width="50dp"
                     android:layout_height="50dp"
                     android:layout_margin="20dp"
-                    android:background="@drawable/run_button_bg"
+                    android:background="@drawable/gray_state_button_bg"
                     android:src="@drawable/baseline_play_arrow_24"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toEndOf="@+id/stop_webserver_bt" />
@@ -61,7 +61,7 @@
                     android:layout_width="50dp"
                     android:layout_height="50dp"
                     android:layout_margin="20dp"
-                    android:background="@drawable/stop_server_button"
+                    android:background="@drawable/stop_server_button_bg"
                     android:src="@drawable/baseline_stop_24"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toStartOf="parent" />
@@ -71,7 +71,7 @@
                     android:layout_width="50dp"
                     android:layout_height="50dp"
                     android:layout_margin="20dp"
-                    android:background="@drawable/switch_camera"
+                    android:background="@drawable/gray_state_button_bg"
                     android:src="@drawable/baseline_change_circle_24"
 
                     android:text="@string/switch_camera_button"
