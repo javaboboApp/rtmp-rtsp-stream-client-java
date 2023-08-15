@@ -11,7 +11,9 @@ import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import com.river.apollo.R
 import com.river.apollo.utils.NetworkUtils
+import com.river.apollo.utils.ServiceUtils.isRtspServerRunning
 import com.river.libstreaming.Session
 import com.river.libstreaming.SessionBuilder
 import com.river.libstreaming.audio.AudioQuality
@@ -20,7 +22,6 @@ import com.river.libstreaming.rtsp.RtspServer
 import com.river.libstreaming.video.VideoQuality
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.Main
-import kotlinx.coroutines.NonCancellable.start
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -34,13 +35,13 @@ class WebServerViewActivity : AppCompatActivity(), Session.Callback {
     private lateinit var localIp: String
 
     companion object {
-        const val DEFAULT_WEBSERVER_PORT = 8186
+        const val DEFAULT_WEBSERVER_PORT = 8080
         const val DEFAULT_STREAMING_SERVER_PORT = "1234"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(com.river.apollo.R.layout.activity_web_server_view)
+        setContentView(R.layout.activity_web_server_view)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         getLocalIp()
@@ -58,9 +59,9 @@ class WebServerViewActivity : AppCompatActivity(), Session.Callback {
     }
 
     private fun initViews() {
-        surfaceView = findViewById(com.river.apollo.R.id.surfaceView)
+        surfaceView = findViewById(R.id.surfaceView)
         val webServerUrl = "http://$localIp:$DEFAULT_WEBSERVER_PORT"
-        findViewById<TextView>(com.river.apollo.R.id.ip_tv).text = webServerUrl
+        findViewById<TextView>(R.id.ip_tv).text = webServerUrl
     }
 
 
@@ -77,7 +78,7 @@ class WebServerViewActivity : AppCompatActivity(), Session.Callback {
     }
 
     private fun stopWebserver() {
-        findViewById<TextView>(com.river.apollo.R.id.ip_tv).visibility = View.GONE
+        findViewById<TextView>(R.id.ip_tv).visibility = View.GONE
         session?.stop()
         server?.stop()
         server = null
@@ -89,44 +90,44 @@ class WebServerViewActivity : AppCompatActivity(), Session.Callback {
     private fun startWebServer() {
         try {
 
-            if (server != null) {
-                Log.d("startWebServer", "server already started !!")
-                return
+            findViewById<TextView>(R.id.ip_tv).visibility = View.VISIBLE
+
+            startSession()
+
+            if (!isRtspServerRunning(this@WebServerViewActivity, RtspServer::class.java)) {
+                // Sets the port of the RTSP server to 1234
+                val editor = PreferenceManager.getDefaultSharedPreferences(this).edit()
+                editor.putString(RtspServer.KEY_PORT, DEFAULT_STREAMING_SERVER_PORT)
+                editor.commit()
+                startService(Intent(this, RtspServer::class.java))
             }
 
-            findViewById<TextView>(com.river.apollo.R.id.ip_tv).visibility = View.VISIBLE
+            if (server?.isAlive == false) {
+                val streamingUrl =
+                    "rtsp://${localIp}:$DEFAULT_STREAMING_SERVER_PORT"
 
-            // Sets the port of the RTSP server to 1234
-            val editor = PreferenceManager.getDefaultSharedPreferences(this).edit()
-            editor.putString(RtspServer.KEY_PORT, DEFAULT_STREAMING_SERVER_PORT)
-            editor.commit()
-
-            session = SessionBuilder.getInstance()
-                .setContext(getApplicationContext())
-                .setAudioEncoder(SessionBuilder.AUDIO_AAC)
-                .setVideoEncoder(SessionBuilder.VIDEO_H264)
-                .setSurfaceView(surfaceView)
-                .setCallback(this)
-                .setAudioQuality(AudioQuality(16000, 32000))
-                .setVideoQuality(VideoQuality(320, 240, 20, 500000)).build()
-
-            session?.start()
-
-            startService(Intent(this, RtspServer::class.java))
-
-            val streamingUrl =
-                "rtsp://${NetworkUtils.getLocalIpAddress(this)}:$DEFAULT_STREAMING_SERVER_PORT"
-
-            server = WebServer(
-                port = DEFAULT_WEBSERVER_PORT,
-                streamingUrl = streamingUrl
-            )
-
-            server?.start()
+                server = WebServer(
+                    port = DEFAULT_WEBSERVER_PORT,
+                    streamingUrl = streamingUrl
+                )
+                server?.start()
+            }
 
         } catch (e: IOException) {
             e.printStackTrace()
         }
+    }
+
+    private fun startSession() {
+        session = SessionBuilder.getInstance()
+            .setContext(getApplicationContext())
+            .setAudioEncoder(SessionBuilder.AUDIO_AAC)
+            .setVideoEncoder(SessionBuilder.VIDEO_H264)
+            .setSurfaceView(surfaceView)
+            .setCallback(this)
+            .setAudioQuality(AudioQuality(16000, 32000))
+            .setVideoQuality(VideoQuality(320, 240, 20, 500000)).build()
+        session?.start()
     }
 
     override fun onBitrateUpdate(bitrate: Long) {
@@ -146,17 +147,25 @@ class WebServerViewActivity : AppCompatActivity(), Session.Callback {
     }
 
     override fun onSessionStarted() {
-        findViewById<ImageView>(com.river.apollo.R.id.start_webserver_bt)
-            .setBackgroundResource(com.river.apollo.R.drawable.gray_state_button_bg)
-        findViewById<ImageView>(com.river.apollo.R.id.stop_webserver_bt)
-            .setBackgroundResource(com.river.apollo.R.drawable.stop_server_button_bg)
+        sessionStartedState()
     }
 
     override fun onSessionStopped() {
-        findViewById<ImageView>(com.river.apollo.R.id.start_webserver_bt)
-            .setBackgroundResource(com.river.apollo.R.drawable.run_state_button_bg)
-        findViewById<ImageView>(com.river.apollo.R.id.stop_webserver_bt)
-            .setBackgroundResource(com.river.apollo.R.drawable.gray_state_button_bg)
+        sessionStoppedState()
+    }
+
+    private fun sessionStartedState() {
+        findViewById<ImageView>(R.id.start_webserver_bt)
+            .setBackgroundResource(R.drawable.gray_state_button_bg)
+        findViewById<ImageView>(R.id.stop_webserver_bt)
+            .setBackgroundResource(R.drawable.stop_server_button_bg)
+    }
+
+    private fun sessionStoppedState() {
+        findViewById<ImageView>(R.id.start_webserver_bt)
+            .setBackgroundResource(R.drawable.run_state_button_bg)
+        findViewById<ImageView>(R.id.stop_webserver_bt)
+            .setBackgroundResource(R.drawable.gray_state_button_bg)
     }
 
 
