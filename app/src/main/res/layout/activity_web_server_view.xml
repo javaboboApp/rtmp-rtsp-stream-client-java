@@ -73,8 +73,21 @@
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    tools:text="(session: stopped)"
-               />
+                    tools:text="(session: stopped)" />
+
+                <TextView
+                    android:id="@+id/webserver_tv"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/ip_tv"
+                    android:layout_marginEnd="8dp"
+                    android:layout_marginRight="8dp"
+                    android:layout_toStartOf="@+id/session_tv"
+                    android:layout_toLeftOf="@+id/session_tv"
+                    android:textColor="@color/white"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    tools:text="(webserver_status: stopped)" />
 
             </RelativeLayout>
 
