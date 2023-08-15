@@ -6,9 +6,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,19 +18,24 @@
 
 package com.river.libstreaming.rtsp;
 
+import android.Manifest;
 import android.app.Service;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
+import android.content.pm.PackageManager;
 import android.os.Binder;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.util.Base64;
 import android.util.Log;
 
+import androidx.core.app.ActivityCompat;
+
 import com.river.libstreaming.Session;
 import com.river.libstreaming.SessionBuilder;
+import com.river.libstreaming.utils.CamaraUtils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -50,410 +55,450 @@ import java.util.regex.Pattern;
 
 /**
  * Implementation of a subset of the RTSP protocol (RFC 2326).
- * 
+ * <p>
  * It allows remote control of an android device cameras & microphone.
  * For each connected client, a Session is instantiated.
  * The Session will start or stop streams according to what the client wants.
- * 
  */
 public class RtspServer extends Service {
 
-	public final static String TAG = "RtspServer";
+    public final static String TAG = "RtspServer";
 
-	/** The server name that will appear in responses. */
-	public static String SERVER_NAME = "MajorKernelPanic RTSP Server";
+    /**
+     * The server name that will appear in responses.
+     */
+    public static String SERVER_NAME = "MajorKernelPanic RTSP Server";
 
-	/** Port used by default. */
-	public static final int DEFAULT_RTSP_PORT = 8086;
+    /**
+     * Port used by default.
+     */
+    public static final int DEFAULT_RTSP_PORT = 8086;
 
-	/** Port already in use. */
-	public final static int ERROR_BIND_FAILED = 0x00;
+    /**
+     * Port already in use.
+     */
+    public final static int ERROR_BIND_FAILED = 0x00;
 
-	/** A stream could not be started. */
-	public final static int ERROR_START_FAILED = 0x01;
+    /**
+     * A stream could not be started.
+     */
+    public final static int ERROR_START_FAILED = 0x01;
 
-	/** Streaming started. */
-	public final static int MESSAGE_STREAMING_STARTED = 0X00;
-	
-	/** Streaming stopped. */
-	public final static int MESSAGE_STREAMING_STOPPED = 0X01;
-	
-	/** Key used in the SharedPreferences to store whether the RTSP server is enabled or not. */
-	public final static String KEY_ENABLED = "rtsp_enabled";
+    /**
+     * Streaming started.
+     */
+    public final static int MESSAGE_STREAMING_STARTED = 0X00;
 
-	/** Key used in the SharedPreferences for the port used by the RTSP server. */
-	public final static String KEY_PORT = "rtsp_port";
+    /**
+     * Streaming stopped.
+     */
+    public final static int MESSAGE_STREAMING_STOPPED = 0X01;
 
-	protected SessionBuilder mSessionBuilder;
-	protected SharedPreferences mSharedPreferences;
-	protected boolean mEnabled = true;	
-	protected int mPort = DEFAULT_RTSP_PORT;
-	protected WeakHashMap<Session,Object> mSessions = new WeakHashMap<>(2);
-	
-	private RequestListener mListenerThread;
-	private final IBinder mBinder = new LocalBinder();
-	private boolean mRestart = false;
-	private final LinkedList<CallbackListener> mListeners = new LinkedList<>();
+    /**
+     * Key used in the SharedPreferences to store whether the RTSP server is enabled or not.
+     */
+    public final static String KEY_ENABLED = "rtsp_enabled";
 
-    /** Credentials for Basic Auth */
+    /**
+     * Key used in the SharedPreferences for the port used by the RTSP server.
+     */
+    public final static String KEY_PORT = "rtsp_port";
+
+    protected SessionBuilder mSessionBuilder;
+    protected SharedPreferences mSharedPreferences;
+    protected boolean mEnabled = true;
+    protected int mPort = DEFAULT_RTSP_PORT;
+    protected WeakHashMap<Session, Object> mSessions = new WeakHashMap<>(2);
+
+    private RequestListener mListenerThread;
+    private final IBinder mBinder = new LocalBinder();
+    private boolean mRestart = false;
+    private final LinkedList<CallbackListener> mListeners = new LinkedList<>();
+
+    /**
+     * Credentials for Basic Auth
+     */
     private String mUsername;
     private String mPassword;
-	
 
-	public RtspServer() {
-	}
 
-	/** Be careful: those callbacks won't necessarily be called from the ui thread ! */
-	public interface CallbackListener {
+    public RtspServer() {
+    }
 
-		/** Called when an error occurs. */
-		void onError(RtspServer server, Exception e, int error);
+    /**
+     * Be careful: those callbacks won't necessarily be called from the ui thread !
+     */
+    public interface CallbackListener {
 
-		/** Called when streaming starts/stops. */
-		void onMessage(RtspServer server, int message);
-		
-	}
+        /**
+         * Called when an error occurs.
+         */
+        void onError(RtspServer server, Exception e, int error);
 
-	/**
-	 * See {@link CallbackListener} to check out what events will be fired once you set up a listener.
-	 * @param listener The listener
-	 */
-	public void addCallbackListener(CallbackListener listener) {
-		synchronized (mListeners) {
-			if (!mListeners.isEmpty()) {
-				for (CallbackListener cl : mListeners) {
-					if (cl == listener) return;
-				}
-			}
-			mListeners.add(listener);			
-		}
-	}
+        /**
+         * Called when streaming starts/stops.
+         */
+        void onMessage(RtspServer server, int message);
 
-	/**
-	 * Removes the listener.
-	 * @param listener The listener
-	 */
-	public void removeCallbackListener(CallbackListener listener) {
-		synchronized (mListeners) {
-			mListeners.remove(listener);				
-		}
-	}
+    }
 
-	/** Returns the port used by the RTSP server. */	
-	public int getPort() {
-		return mPort;
-	}
+    /**
+     * See {@link CallbackListener} to check out what events will be fired once you set up a listener.
+     *
+     * @param listener The listener
+     */
+    public void addCallbackListener(CallbackListener listener) {
+        synchronized (mListeners) {
+            if (!mListeners.isEmpty()) {
+                for (CallbackListener cl : mListeners) {
+                    if (cl == listener) return;
+                }
+            }
+            mListeners.add(listener);
+        }
+    }
 
-	/**
-	 * Sets the port for the RTSP server to use.
-	 * @param port The port
-	 */
-	public void setPort(int port) {
-		Editor editor = mSharedPreferences.edit();
-		editor.putString(KEY_PORT, String.valueOf(port));
-		editor.commit();
-	}
+    /**
+     * Removes the listener.
+     *
+     * @param listener The listener
+     */
+    public void removeCallbackListener(CallbackListener listener) {
+        synchronized (mListeners) {
+            mListeners.remove(listener);
+        }
+    }
+
+    /**
+     * Returns the port used by the RTSP server.
+     */
+    public int getPort() {
+        return mPort;
+    }
+
+    /**
+     * Sets the port for the RTSP server to use.
+     *
+     * @param port The port
+     */
+    public void setPort(int port) {
+        Editor editor = mSharedPreferences.edit();
+        editor.putString(KEY_PORT, String.valueOf(port));
+        editor.commit();
+    }
 
     /**
      * Set Basic authorization to access RTSP Stream
+     *
      * @param username username
      * @param password password
      */
-    public void setAuthorization(String username, String password)
-    {
+    public void setAuthorization(String username, String password) {
         mUsername = username;
         mPassword = password;
     }
 
-	/** 
-	 * Starts (or restart if needed, if for example the configuration 
-	 * of the server has been modified) the RTSP server. 
-	 */
-	public void start() {
-		if (!mEnabled || mRestart) stop();
-		if (mEnabled && mListenerThread == null) {
-			try {
-				mListenerThread = new RequestListener();
-			} catch (Exception e) {
-				mListenerThread = null;
-			}
-		}
-		mRestart = false;
-	}
+    /**
+     * Starts (or restart if needed, if for example the configuration
+     * of the server has been modified) the RTSP server.
+     */
+    public void start() {
+        if (!mEnabled || mRestart) stop();
+        if (mEnabled && mListenerThread == null) {
+            try {
+                mListenerThread = new RequestListener();
+            } catch (Exception e) {
+                mListenerThread = null;
+            }
+        }
+        mRestart = false;
+    }
 
-	/** 
-	 * Stops the RTSP server but not the Android Service. 
-	 * To stop the Android Service you need to call {@link android.content.Context#stopService(Intent)}; 
-	 */
-	public void stop() {
-		if (mListenerThread != null) {
-			try {
-				mListenerThread.kill();
-				for ( Session session : mSessions.keySet() ) {
-				    if ( session != null && session.isStreaming() ) {
-						session.stop();
-				    } 
-				}
-			} catch (Exception e) {
-			} finally {
-				mListenerThread = null;
-			}
-		}
-	}
+    /**
+     * Stops the RTSP server but not the Android Service.
+     * To stop the Android Service you need to call {@link android.content.Context#stopService(Intent)};
+     */
+    public void stop() {
+        if (mListenerThread != null) {
+            try {
+                mListenerThread.kill();
+                for (Session session : mSessions.keySet()) {
+                    if (session != null && session.isStreaming()) {
+                        session.stop();
+                    }
+                }
+            } catch (Exception e) {
+            } finally {
+                mListenerThread = null;
+            }
+        }
+    }
 
-	/** Returns whether or not the RTSP server is streaming to some client(s). */
-	public boolean isStreaming() {
-		for ( Session session : mSessions.keySet() ) {
-		    if ( session != null && session.isStreaming() ) {
-		    	return true;
-		    } 
-		}
-		return false;
-	}
-	
-	public boolean isEnabled() {
-		return mEnabled;
-	}
+    /**
+     * Returns whether or not the RTSP server is streaming to some client(s).
+     */
+    public boolean isStreaming() {
+        for (Session session : mSessions.keySet()) {
+            if (session != null && session.isStreaming()) {
+                return true;
+            }
+        }
+        return false;
+    }
 
-	/** Returns the bandwidth consumed by the RTSP server in bits per second. */
-	public long getBitrate() {
-		long bitrate = 0;
-		for ( Session session : mSessions.keySet() ) {
-		    if ( session != null && session.isStreaming() ) {
-		    	bitrate += session.getBitrate();
-		    } 
-		}
-		return bitrate;
-	}
-	
-	@Override
-	public int onStartCommand(Intent intent, int flags, int startId) {
-		return START_STICKY;
-	}
+    public boolean isEnabled() {
+        return mEnabled;
+    }
 
-	@Override
-	public void onCreate() {
+    /**
+     * Returns the bandwidth consumed by the RTSP server in bits per second.
+     */
+    public long getBitrate() {
+        long bitrate = 0;
+        for (Session session : mSessions.keySet()) {
+            if (session != null && session.isStreaming()) {
+                bitrate += session.getBitrate();
+            }
+        }
+        return bitrate;
+    }
 
-		// Let's restore the state of the service 
-		mSharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-		mPort = Integer.parseInt(mSharedPreferences.getString(KEY_PORT, String.valueOf(mPort)));
-		mEnabled = mSharedPreferences.getBoolean(KEY_ENABLED, mEnabled);
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
 
-		// If the configuration is modified, the server will adjust
-		mSharedPreferences.registerOnSharedPreferenceChangeListener(mOnSharedPreferenceChangeListener);
+        return START_STICKY;
+    }
 
-		start();
-	}
+    @Override
+    public void onCreate() {
 
-	@Override
-	public void onDestroy() {
-		stop();
-		mSharedPreferences.unregisterOnSharedPreferenceChangeListener(mOnSharedPreferenceChangeListener);
-	}
+        if(!CamaraUtils.INSTANCE.canOverDrawOtherApps(this)){
+            CamaraUtils.INSTANCE.openDrawOverPermissionSetting(this);
+        }else if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+                == PackageManager.PERMISSION_GRANTED) {
 
-	private OnSharedPreferenceChangeListener mOnSharedPreferenceChangeListener = new OnSharedPreferenceChangeListener() {
-		@Override
-		public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+            // Let's restore the state of the service
+            mSharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+            mPort = Integer.parseInt(mSharedPreferences.getString(KEY_PORT, String.valueOf(mPort)));
+            mEnabled = mSharedPreferences.getBoolean(KEY_ENABLED, mEnabled);
 
-			if (key.equals(KEY_PORT)) {
-				int port = Integer.parseInt(sharedPreferences.getString(KEY_PORT, String.valueOf(mPort)));
-				if (port != mPort) {
-					mPort = port;
-					mRestart = true;
-					start();
-				}
-			}		
-			else if (key.equals(KEY_ENABLED)) {
-				mEnabled = sharedPreferences.getBoolean(KEY_ENABLED, mEnabled);
-				start();
-			}
-		}
-	};
+            // If the configuration is modified, the server will adjust
+            mSharedPreferences.registerOnSharedPreferenceChangeListener(mOnSharedPreferenceChangeListener);
 
-	/** The Binder you obtain when a connection with the Service is established. */
-	public class LocalBinder extends Binder {
-		public RtspServer getService() {
-			return RtspServer.this;
-		}
-	}
+            start();
+        }
+    }
 
-	@Override
-	public IBinder onBind(Intent intent) {
-		return mBinder;
-	}
+    @Override
+    public void onDestroy() {
+        stop();
+        mSharedPreferences.unregisterOnSharedPreferenceChangeListener(mOnSharedPreferenceChangeListener);
+    }
 
-	protected void postMessage(int id) {
-		synchronized (mListeners) {
-			if (!mListeners.isEmpty()) {
-				for (CallbackListener cl : mListeners) {
-					cl.onMessage(this, id);
-				}
-			}			
-		}
-	}	
-	
-	protected void postError(Exception exception, int id) {
-		synchronized (mListeners) {
-			if (!mListeners.isEmpty()) {
-				for (CallbackListener cl : mListeners) {
-					cl.onError(this, exception, id);
-				}
-			}			
-		}
-	}
+    private OnSharedPreferenceChangeListener mOnSharedPreferenceChangeListener = new OnSharedPreferenceChangeListener() {
+        @Override
+        public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
 
-	/** 
-	 * By default the RTSP uses {@link UriParser} to parse the URI requested by the client
-	 * but you can change that behavior by override this method.
-	 * @param uri The uri that the client has requested
-	 * @param client The socket associated to the client
-	 * @return A proper session
-	 */
-	protected Session handleRequest(String uri, Socket client) throws IllegalStateException, IOException {
-		Session session = UriParser.parse(uri);
-		session.setOrigin(client.getLocalAddress().getHostAddress());
-		if (session.getDestination()==null) {
-			session.setDestination(client.getInetAddress().getHostAddress());
-		}
-		return session;
-	}
-	
-	class RequestListener extends Thread implements Runnable {
+            if (key.equals(KEY_PORT)) {
+                int port = Integer.parseInt(sharedPreferences.getString(KEY_PORT, String.valueOf(mPort)));
+                if (port != mPort) {
+                    mPort = port;
+                    mRestart = true;
+                    start();
+                }
+            } else if (key.equals(KEY_ENABLED)) {
+                mEnabled = sharedPreferences.getBoolean(KEY_ENABLED, mEnabled);
+                start();
+            }
+        }
+    };
 
-		private final ServerSocket mServer;
+    /**
+     * The Binder you obtain when a connection with the Service is established.
+     */
+    public class LocalBinder extends Binder {
+        public RtspServer getService() {
+            return RtspServer.this;
+        }
+    }
 
-		public RequestListener() throws IOException {
-			try {
-				mServer = new ServerSocket(mPort);
-				start();
-			} catch (BindException e) {
-				Log.e(TAG,"Port already in use !");
-				postError(e, ERROR_BIND_FAILED);
-				throw e;
-			}
-		}
+    @Override
+    public IBinder onBind(Intent intent) {
+        return mBinder;
+    }
 
-		public void run() {
-			Log.i(TAG,"RTSP server listening on port "+mServer.getLocalPort());
-			while (!Thread.interrupted()) {
-				try {
-					new WorkerThread(mServer.accept()).start();
-				} catch (SocketException e) {
-					break;
-				} catch (IOException e) {
-					Log.e(TAG,e.getMessage());
-					continue;
-				}
-			}
-			Log.i(TAG,"RTSP server stopped !");
-		}
+    protected void postMessage(int id) {
+        synchronized (mListeners) {
+            if (!mListeners.isEmpty()) {
+                for (CallbackListener cl : mListeners) {
+                    cl.onMessage(this, id);
+                }
+            }
+        }
+    }
 
-		public void kill() {
-			try {
-				mServer.close();
-			} catch (IOException e) {}
-			try {
-				this.join();
-			} catch (InterruptedException ignore) {}
-		}
+    protected void postError(Exception exception, int id) {
+        synchronized (mListeners) {
+            if (!mListeners.isEmpty()) {
+                for (CallbackListener cl : mListeners) {
+                    cl.onError(this, exception, id);
+                }
+            }
+        }
+    }
 
-	}
+    /**
+     * By default the RTSP uses {@link UriParser} to parse the URI requested by the client
+     * but you can change that behavior by override this method.
+     *
+     * @param uri    The uri that the client has requested
+     * @param client The socket associated to the client
+     * @return A proper session
+     */
+    protected Session handleRequest(String uri, Socket client) throws IllegalStateException, IOException {
+        Session session = UriParser.parse(uri);
+        session.setOrigin(client.getLocalAddress().getHostAddress());
+        if (session.getDestination() == null) {
+            session.setDestination(client.getInetAddress().getHostAddress());
+        }
+        return session;
+    }
 
-	// One thread per client
-	class WorkerThread extends Thread implements Runnable {
+    class RequestListener extends Thread implements Runnable {
 
-		private final Socket mClient;
-		private final OutputStream mOutput;
-		private final BufferedReader mInput;
+        private final ServerSocket mServer;
 
-		// Each client has an associated session
-		private Session mSession;
+        public RequestListener() throws IOException {
+            try {
+                mServer = new ServerSocket(mPort);
+                start();
+            } catch (BindException e) {
+                Log.e(TAG, "Port already in use !");
+                postError(e, ERROR_BIND_FAILED);
+                throw e;
+            }
+        }
 
-		public WorkerThread(final Socket client) throws IOException {
-			mInput = new BufferedReader(new InputStreamReader(client.getInputStream()));
-			mOutput = client.getOutputStream();
-			mClient = client;
-			mSession = new Session();
-		}
+        public void run() {
+            Log.i(TAG, "RTSP server listening on port " + mServer.getLocalPort());
+            while (!Thread.interrupted()) {
+                try {
+                    new WorkerThread(mServer.accept()).start();
+                } catch (SocketException e) {
+                    break;
+                } catch (IOException e) {
+                    Log.e(TAG, e.getMessage());
+                    continue;
+                }
+            }
+            Log.i(TAG, "RTSP server stopped !");
+        }
 
-		public void run() {
-			Request request;
-			Response response;
+        public void kill() {
+            try {
+                mServer.close();
+            } catch (IOException e) {
+            }
+            try {
+                this.join();
+            } catch (InterruptedException ignore) {
+            }
+        }
 
-			Log.i(TAG, "Connection from "+mClient.getInetAddress().getHostAddress());
+    }
 
-			while (!Thread.interrupted()) {
+    // One thread per client
+    class WorkerThread extends Thread implements Runnable {
 
-				request = null;
-				response = null;
+        private final Socket mClient;
+        private final OutputStream mOutput;
+        private final BufferedReader mInput;
 
-				// Parse the request
-				try {
-					request = Request.parseRequest(mInput);
-				} catch (SocketException e) {
-					// Client has left
-					break;
-				} catch (Exception e) {
-					// We don't understand the request :/
-					response = new Response();
-					response.status = Response.STATUS_BAD_REQUEST;
-				}
+        // Each client has an associated session
+        private Session mSession;
 
-				// Do something accordingly like starting the streams, sending a session description
-				if (request != null) {
-					try {
-						response = processRequest(request);
-					}
-					catch (Exception e) {
-						// This alerts the main thread that something has gone wrong in this thread
-						postError(e, ERROR_START_FAILED);
-						Log.e(TAG,e.getMessage()!=null?e.getMessage():"An error occurred");
-						e.printStackTrace();
-						response = new Response(request);
-					}
-				}
+        public WorkerThread(final Socket client) throws IOException {
+            mInput = new BufferedReader(new InputStreamReader(client.getInputStream()));
+            mOutput = client.getOutputStream();
+            mClient = client;
+            mSession = new Session();
+        }
 
-				// We always send a response
-				// The client will receive an "INTERNAL SERVER ERROR" if an exception has been thrown at some point
-				try {
-					response.send(mOutput);
-				} catch (IOException e) {
-					Log.e(TAG,"Response was not sent properly");
-					break;
-				}
+        public void run() {
+            Request request;
+            Response response;
 
-			}
+            Log.i(TAG, "Connection from " + mClient.getInetAddress().getHostAddress());
 
-			// Streaming stops when client disconnects
-			boolean streaming = isStreaming();
-			mSession.syncStop();
-			if (streaming && !isStreaming()) {
-				postMessage(MESSAGE_STREAMING_STOPPED);
-			}
-			mSession.release();
+            while (!Thread.interrupted()) {
 
-			try {
-				mClient.close();
-			} catch (IOException ignore) {}
+                request = null;
+                response = null;
 
-			Log.i(TAG, "Client disconnected");
+                // Parse the request
+                try {
+                    request = Request.parseRequest(mInput);
+                } catch (SocketException e) {
+                    // Client has left
+                    break;
+                } catch (Exception e) {
+                    // We don't understand the request :/
+                    response = new Response();
+                    response.status = Response.STATUS_BAD_REQUEST;
+                }
 
-		}
+                // Do something accordingly like starting the streams, sending a session description
+                if (request != null) {
+                    try {
+                        response = processRequest(request);
+                    } catch (Exception e) {
+                        // This alerts the main thread that something has gone wrong in this thread
+                        postError(e, ERROR_START_FAILED);
+                        Log.e(TAG, e.getMessage() != null ? e.getMessage() : "An error occurred");
+                        e.printStackTrace();
+                        response = new Response(request);
+                    }
+                }
 
-		public Response processRequest(Request request) throws IllegalStateException, IOException {
-			Response response = new Response(request);
+                // We always send a response
+                // The client will receive an "INTERNAL SERVER ERROR" if an exception has been thrown at some point
+                try {
+                    response.send(mOutput);
+                } catch (IOException e) {
+                    Log.e(TAG, "Response was not sent properly");
+                    break;
+                }
+
+            }
+
+            // Streaming stops when client disconnects
+            boolean streaming = isStreaming();
+            mSession.syncStop();
+            if (streaming && !isStreaming()) {
+                postMessage(MESSAGE_STREAMING_STOPPED);
+            }
+            mSession.release();
+
+            try {
+                mClient.close();
+            } catch (IOException ignore) {
+            }
+
+            Log.i(TAG, "Client disconnected");
+
+        }
+
+        public Response processRequest(Request request) throws IllegalStateException, IOException {
+            Response response = new Response(request);
 
             //Ask for authorization unless this is an OPTIONS request
-            if(!isAuthorized(request) && !request.method.equalsIgnoreCase("OPTIONS"))
-            {
-                response.attributes = "WWW-Authenticate: Basic realm=\""+SERVER_NAME+"\"\r\n";
+            if (!isAuthorized(request) && !request.method.equalsIgnoreCase("OPTIONS")) {
+                response.attributes = "WWW-Authenticate: Basic realm=\"" + SERVER_NAME + "\"\r\n";
                 response.status = Response.STATUS_UNAUTHORIZED;
-            }
-            else
-            {
-			    /* ********************************************************************************** */
-			    /* ********************************* Method DESCRIBE ******************************** */
-			    /* ********************************************************************************** */
+            } else {
+                /* ********************************************************************************** */
+                /* ********************************* Method DESCRIBE ******************************** */
+                /* ********************************************************************************** */
                 if (request.method.equalsIgnoreCase("DESCRIBE")) {
 
                     // Parse the requested URI and configure the session
@@ -517,7 +562,7 @@ public class RtspServer extends Service {
                     } else {
                         p1 = Integer.parseInt(m.group(1));
                         if (m.group(2) == null) {
-                            p2 = p1+1;
+                            p2 = p1 + 1;
                         } else {
                             p2 = Integer.parseInt(m.group(2));
                         }
@@ -589,118 +634,119 @@ public class RtspServer extends Service {
                     response.status = Response.STATUS_BAD_REQUEST;
                 }
             }
-			return response;
+            return response;
 
-		}
+        }
 
         /**
          * Check if the request is authorized
+         *
          * @param request
          * @return true or false
          */
-        private boolean isAuthorized(Request request)
-        {
+        private boolean isAuthorized(Request request) {
             String auth = request.headers.get("authorization");
-            if(mUsername == null || mPassword == null || mUsername.isEmpty())
+            if (mUsername == null || mPassword == null || mUsername.isEmpty())
                 return true;
 
-            if(auth != null && !auth.isEmpty())
-            {
-                String received = auth.substring(auth.lastIndexOf(" ")+1);
-                String local = mUsername+":"+mPassword;
-                String localEncoded = Base64.encodeToString(local.getBytes(),Base64.NO_WRAP);
-                if(localEncoded.equals(received))
+            if (auth != null && !auth.isEmpty()) {
+                String received = auth.substring(auth.lastIndexOf(" ") + 1);
+                String local = mUsername + ":" + mPassword;
+                String localEncoded = Base64.encodeToString(local.getBytes(), Base64.NO_WRAP);
+                if (localEncoded.equals(received))
                     return true;
             }
 
             return false;
         }
-	}
+    }
 
-	static class Request {
+    static class Request {
 
-		// Parse method & uri
-		public static final Pattern regexMethod = Pattern.compile("(\\w+) (\\S+) RTSP",Pattern.CASE_INSENSITIVE);
-		// Parse a request header
-		public static final Pattern rexegHeader = Pattern.compile("(\\S+):(.+)",Pattern.CASE_INSENSITIVE);
+        // Parse method & uri
+        public static final Pattern regexMethod = Pattern.compile("(\\w+) (\\S+) RTSP", Pattern.CASE_INSENSITIVE);
+        // Parse a request header
+        public static final Pattern rexegHeader = Pattern.compile("(\\S+):(.+)", Pattern.CASE_INSENSITIVE);
 
-		public String method;
-		public String uri;
-		public HashMap<String,String> headers = new HashMap<>();
+        public String method;
+        public String uri;
+        public HashMap<String, String> headers = new HashMap<>();
 
-		/** Parse the method, uri & headers of a RTSP request */
-		public static Request parseRequest(BufferedReader input) throws IOException, IllegalStateException, SocketException {
-			Request request = new Request();
-			String line;
-			Matcher matcher;
+        /**
+         * Parse the method, uri & headers of a RTSP request
+         */
+        public static Request parseRequest(BufferedReader input) throws IOException, IllegalStateException, SocketException {
+            Request request = new Request();
+            String line;
+            Matcher matcher;
 
-			// Parsing request method & uri
-			if ((line = input.readLine())==null) throw new SocketException("Client disconnected");
-			matcher = regexMethod.matcher(line);
-			matcher.find();
-			request.method = matcher.group(1);
-			request.uri = matcher.group(2);
+            // Parsing request method & uri
+            if ((line = input.readLine()) == null) throw new SocketException("Client disconnected");
+            matcher = regexMethod.matcher(line);
+            matcher.find();
+            request.method = matcher.group(1);
+            request.uri = matcher.group(2);
 
-			// Parsing headers of the request
-			while ( (line = input.readLine()) != null && line.length()>3 ) {
-				matcher = rexegHeader.matcher(line);
-				matcher.find();
-				request.headers.put(matcher.group(1).toLowerCase(Locale.US),matcher.group(2));
-			}
-			if (line==null) throw new SocketException("Client disconnected");
+            // Parsing headers of the request
+            while ((line = input.readLine()) != null && line.length() > 3) {
+                matcher = rexegHeader.matcher(line);
+                matcher.find();
+                request.headers.put(matcher.group(1).toLowerCase(Locale.US), matcher.group(2));
+            }
+            if (line == null) throw new SocketException("Client disconnected");
 
-			// It's not an error, it's just easier to follow what's happening in logcat with the request in red
-			Log.e(TAG,request.method+" "+request.uri);
+            // It's not an error, it's just easier to follow what's happening in logcat with the request in red
+            Log.e(TAG, request.method + " " + request.uri);
 
-			return request;
-		}
-	}
+            return request;
+        }
+    }
 
-	static class Response {
+    static class Response {
 
-		// Status code definitions
-		public static final String STATUS_OK = "200 OK";
-		public static final String STATUS_BAD_REQUEST = "400 Bad Request";
+        // Status code definitions
+        public static final String STATUS_OK = "200 OK";
+        public static final String STATUS_BAD_REQUEST = "400 Bad Request";
         public static final String STATUS_UNAUTHORIZED = "401 Unauthorized";
-		public static final String STATUS_NOT_FOUND = "404 Not Found";
-		public static final String STATUS_INTERNAL_SERVER_ERROR = "500 Internal Server Error";
+        public static final String STATUS_NOT_FOUND = "404 Not Found";
+        public static final String STATUS_INTERNAL_SERVER_ERROR = "500 Internal Server Error";
 
-		public String status = STATUS_INTERNAL_SERVER_ERROR;
-		public String content = "";
-		public String attributes = "";
+        public String status = STATUS_INTERNAL_SERVER_ERROR;
+        public String content = "";
+        public String attributes = "";
 
-		private final Request mRequest;
+        private final Request mRequest;
 
-		public Response(Request request) {
-			this.mRequest = request;
-		}
+        public Response(Request request) {
+            this.mRequest = request;
+        }
 
-		public Response() {
-			// Be carefull if you modify the send() method because request might be null !
-			mRequest = null;
-		}
+        public Response() {
+            // Be carefull if you modify the send() method because request might be null !
+            mRequest = null;
+        }
 
-		public void send(OutputStream output) throws IOException {
-			int seqid = -1;
+        public void send(OutputStream output) throws IOException {
+            int seqid = -1;
 
-			try {
-				seqid = Integer.parseInt(mRequest.headers.get("cseq").replace(" ",""));
-			} catch (Exception e) {
-				Log.e(TAG,"Error parsing CSeq: "+(e.getMessage()!=null?e.getMessage():""));
-			}
+            try {
+                seqid = Integer.parseInt(mRequest.headers.get("cseq").replace(" ", ""));
+            } catch (Exception e) {
+                Log.e(TAG, "Error parsing CSeq: " + (e.getMessage() != null ? e.getMessage() : ""));
+            }
 
-			String response = 	"RTSP/1.0 "+status+"\r\n" +
-					"Server: "+SERVER_NAME+"\r\n" +
-					(seqid>=0?("Cseq: " + seqid + "\r\n"):"") +
-					"Content-Length: " + content.length() + "\r\n" +
-					attributes +
-					"\r\n" + 
-					content;
+            String response = "RTSP/1.0 " + status + "\r\n" +
+                    "Server: " + SERVER_NAME + "\r\n" +
+                    (seqid >= 0 ? ("Cseq: " + seqid + "\r\n") : "") +
+                    "Content-Length: " + content.length() + "\r\n" +
+                    attributes +
+                    "\r\n" +
+                    content;
 
-			Log.d(TAG,response.replace("\r", ""));
+            Log.d(TAG, response.replace("\r", ""));
 
-			output.write(response.getBytes());
-		}
-	}
+            output.write(response.getBytes());
+        }
+    }
 
 }
