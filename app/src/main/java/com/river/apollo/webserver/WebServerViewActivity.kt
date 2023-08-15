@@ -13,7 +13,6 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import com.river.apollo.R
@@ -149,6 +148,7 @@ class WebServerViewActivity : AppCompatActivity(), Session.Callback {
         session?.stop()
         session = null
         WebServer.getInstance()?.stop()
+        WebServer.nullify()
         stopService(Intent(this, RtspServer::class.java))
     }
 

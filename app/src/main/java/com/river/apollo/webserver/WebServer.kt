@@ -23,6 +23,10 @@ class WebServer(port: Int, private val streamingUrl: String) :
         {
             return INSTANCE
         }
+        
+        fun nullify(){
+            INSTANCE = null 
+        }
 
     }
 
