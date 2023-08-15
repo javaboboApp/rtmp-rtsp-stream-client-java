@@ -39,6 +39,7 @@ class WebServer(port: Int, private val streamingUrl: String) :
 
         fun onSwitchCamera()
         fun closeActivity()
+        fun stopStreaming()
     }
 
     override fun serve(session: IHTTPSession): Response {
@@ -97,6 +98,7 @@ class WebServer(port: Int, private val streamingUrl: String) :
                     <p>In order to watch the content, you need to use VLC Media Player.</p>
                     <a href="$streamingUrl">Click here to start streaming</a>
                      <div class="button-container">
+                        <button onclick="sendCommand('StopStreaming')">Stop Streaming</button>
                         <button onclick="sendCommand('switchCamera')">Switch Camera</button>
                         <button onclick="sendCommand('closeWindows')">Close Window</button>
                     </div>
@@ -125,6 +127,12 @@ class WebServer(port: Int, private val streamingUrl: String) :
                 // Perform switch camera action, e.g., switch camera feed
                 listener?.onSwitchCamera()
                 return "Switch Camera command received"
+            }
+
+            "StopStreaming" ->{
+                listener?.stopStreaming()
+                return "Stop Streaming command received"
+
             }
 
             "closeWindows" -> {

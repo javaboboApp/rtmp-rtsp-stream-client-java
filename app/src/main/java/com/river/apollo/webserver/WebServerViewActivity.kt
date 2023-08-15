@@ -126,7 +126,7 @@ class WebServerViewActivity : AppCompatActivity(), Session.Callback {
 
         findViewById<ImageView>(R.id.stop_webserver_bt).setOnClickListener {
             // Stop the server
-            stopWebserver()
+            stopAll()
             hideControlsAfterTimeout()
         }
 
@@ -144,7 +144,7 @@ class WebServerViewActivity : AppCompatActivity(), Session.Callback {
 
     @SuppressLint("SetTextI18n")
 
-    private fun stopWebserver() {
+    private fun stopAll() {
         findViewById<TextView>(R.id.webserver_tv).text = "(webserver_status: stopped)"
         session?.stop()
         session = null
@@ -184,22 +184,18 @@ class WebServerViewActivity : AppCompatActivity(), Session.Callback {
                 }
 
                 override fun onSwitchCamera() {
-                    Log.d("xxx", "oid $session")
                     session?.switchCamera()
-                    Toast.makeText(
-                        this@WebServerViewActivity,
-                        "onSwitchCamera",
-                        Toast.LENGTH_LONG
-                    ).show()
-
                 }
 
                 override fun closeActivity() {
-                    Log.d("xxx", "oid ${this@WebServerViewActivity}")
                     runOnUiThread {
                         this@WebServerViewActivity.finish() // Finish the activity on the UI thread
                     }
 
+                }
+
+                override fun stopStreaming() {
+                    stopAll()
                 }
 
             })
