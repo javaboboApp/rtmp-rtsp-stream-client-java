@@ -5,11 +5,15 @@ import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.preference.PreferenceManager
+import android.view.MotionEvent
 import android.view.View
+import android.view.View.OnTouchListener
+import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.isVisible
 import com.river.apollo.R
 import com.river.apollo.utils.NetworkUtils
 import com.river.apollo.utils.ServiceUtils.isRtspServerRunning
@@ -21,19 +25,24 @@ import com.river.libstreaming.rtsp.RtspServer
 import com.river.libstreaming.video.VideoQuality
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.Main
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.IOException
 
 private const val TAG = "WebServerViewActivity"
+
 class WebServerViewActivity : AppCompatActivity(), Session.Callback {
 
+    private var hideControlJob: Job? = null
     private var session: Session? = null
     private var server: WebServer? = null
     private lateinit var surfaceView: SurfaceView
     private lateinit var localIp: String
 
     companion object {
+        const val DEFAULT_WEBSERVER_DELAY = 200L
+        const val HIDE_CONTROL_TIMEOUT = 10_000L
         const val DEFAULT_WEBSERVER_PORT = 8080
         const val DEFAULT_STREAMING_SERVER_PORT = "1234"
     }
@@ -46,11 +55,28 @@ class WebServerViewActivity : AppCompatActivity(), Session.Callback {
         initListeners()
         initViews()
         CoroutineScope(Main).launch {
-            delay(200)
+            delay(DEFAULT_WEBSERVER_DELAY)
             startWebServer()
         }
+        hideControlsAfterTimeout()
 
     }
+
+    private fun hideControlsAfterTimeout() {
+        hideControlJob?.cancel()
+        hideControlJob = CoroutineScope(Main).launch {
+            delay(HIDE_CONTROL_TIMEOUT)
+            findViewById<ViewGroup>(R.id.controls_container).isVisible = false
+            findViewById<ViewGroup>(R.id.back_arrow).isVisible = false
+        }
+    }
+
+    private fun showControls() {
+        findViewById<ViewGroup>(R.id.controls_container).isVisible = true
+        findViewById<ViewGroup>(R.id.back_arrow).isVisible = true
+        hideControlsAfterTimeout()
+    }
+
 
     private fun setupWindowsFeatures() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -64,31 +90,54 @@ class WebServerViewActivity : AppCompatActivity(), Session.Callback {
         this.localIp = NetworkUtils.getLocalIpAddress(this)
     }
 
+    @SuppressLint("SetTextI18n")
     private fun initViews() {
         surfaceView = findViewById(R.id.surfaceView)
-        val webServerUrl = "http://$localIp:$DEFAULT_WEBSERVER_PORT"
+        val webServerUrl = "(webServerIp: http://$localIp:$DEFAULT_WEBSERVER_PORT, rtsp_server: rtsp://${localIp}:$DEFAULT_STREAMING_SERVER_PORT)"
         findViewById<TextView>(R.id.ip_tv).text = webServerUrl
     }
 
 
+    @SuppressLint("ClickableViewAccessibility")
     private fun initListeners() {
+
+        findViewById<SurfaceView>(R.id.surfaceView).setOnTouchListener(OnTouchListener { v, event ->
+            // Handle touch events here
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                if (findViewById<ViewGroup>(R.id.controls_container).isVisible) {
+                    hideControlsAfterTimeout()
+                } else {
+                    showControls()
+                }
+            }
+            true // Return true to consume the event
+        })
+
+
+
         findViewById<ImageView>(R.id.start_webserver_bt).setOnClickListener {
             // Start the server
             startWebServer()
+            hideControlsAfterTimeout()
         }
 
         findViewById<ImageView>(R.id.stop_webserver_bt).setOnClickListener {
             // Stop the server
             stopWebserver()
+            hideControlsAfterTimeout()
+        }
+
+        findViewById<ImageView>(R.id.back_arrow).setOnClickListener {
+              finish()
         }
 
         findViewById<ImageView>(R.id.switch_camera).setOnClickListener {
             session?.switchCamera()
+            hideControlsAfterTimeout()
         }
     }
 
     private fun stopWebserver() {
-        findViewById<TextView>(R.id.ip_tv).visibility = View.GONE
         session?.stop()
         server?.stop()
         server = null
@@ -96,11 +145,9 @@ class WebServerViewActivity : AppCompatActivity(), Session.Callback {
         stopService(Intent(this, RtspServer::class.java))
     }
 
-    @SuppressLint("ApplySharedPref")
+    @SuppressLint("ApplySharedPref", "SetTextI18n")
     private fun startWebServer() {
         try {
-
-            findViewById<TextView>(R.id.ip_tv).visibility = View.VISIBLE
 
             startSession()
 
@@ -113,8 +160,10 @@ class WebServerViewActivity : AppCompatActivity(), Session.Callback {
             }
 
             if (server?.isAlive == false) {
+
                 val streamingUrl =
                     "rtsp://${localIp}:$DEFAULT_STREAMING_SERVER_PORT"
+
 
                 server = WebServer(
                     port = DEFAULT_WEBSERVER_PORT,
@@ -140,12 +189,15 @@ class WebServerViewActivity : AppCompatActivity(), Session.Callback {
         session?.start()
     }
 
+    @SuppressLint("SetTextI18n")
     override fun onBitrateUpdate(bitrate: Long) {
+        findViewById<TextView>(R.id.tv_bitrate).text = "(bitrate: $bitrate)"
 
     }
 
+    @SuppressLint("SetTextI18n")
     override fun onSessionError(reason: Int, streamType: Int, e: Exception?) {
-
+        findViewById<TextView>(R.id.session_tv).text =  "(session_status: error($reason))"
     }
 
     override fun onPreviewStarted() {
@@ -164,18 +216,22 @@ class WebServerViewActivity : AppCompatActivity(), Session.Callback {
         sessionStoppedState()
     }
 
+    @SuppressLint("SetTextI18n")
     private fun sessionStartedState() {
         findViewById<ImageView>(R.id.start_webserver_bt)
             .setBackgroundResource(R.drawable.gray_state_button_bg)
         findViewById<ImageView>(R.id.stop_webserver_bt)
             .setBackgroundResource(R.drawable.stop_server_button_bg)
-    }
+        findViewById<TextView>(R.id.session_tv).text =  "(session_status: started)"
 
+    }
+    @SuppressLint("SetTextI18n")
     private fun sessionStoppedState() {
         findViewById<ImageView>(R.id.start_webserver_bt)
             .setBackgroundResource(R.drawable.run_state_button_bg)
         findViewById<ImageView>(R.id.stop_webserver_bt)
             .setBackgroundResource(R.drawable.gray_state_button_bg)
+        findViewById<TextView>(R.id.session_tv).text =  "(session_status: stopped)"
     }
 
 
