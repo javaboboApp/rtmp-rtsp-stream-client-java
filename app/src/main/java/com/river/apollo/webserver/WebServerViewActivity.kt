@@ -1,9 +1,7 @@
 package com.river.apollo.webserver
 
-import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Bundle
 import android.preference.PreferenceManager
 import android.util.Log
@@ -15,14 +13,13 @@ import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import com.river.apollo.R
 import com.river.apollo.utils.NetworkUtils
 import com.river.libstreaming.Session
 import com.river.libstreaming.SessionBuilder
 import com.river.libstreaming.gl.SurfaceView
-import com.river.libstreaming.rtsp.RtspServer
+import com.river.libstreaming.rtsp.RtspServerService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.Job
@@ -52,9 +49,6 @@ class WebServerViewActivity : AppCompatActivity(), Session.Callback {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_web_server_view)
-
-
-
         setupWindowsFeatures()
         getLocalIp()
         initListeners()
@@ -65,13 +59,6 @@ class WebServerViewActivity : AppCompatActivity(), Session.Callback {
         }
         hideControlsAfterTimeout()
 
-    }
-
-    fun hasCameraPermission(): Boolean {
-        return ContextCompat.checkSelfPermission(
-            applicationContext,
-            Manifest.permission.CAMERA
-        ) == PackageManager.PERMISSION_GRANTED
     }
 
     private fun hideControlsAfterTimeout() {
@@ -159,7 +146,7 @@ class WebServerViewActivity : AppCompatActivity(), Session.Callback {
         session = null
         WebServer.getInstance()?.stop()
         WebServer.nullify()
-        stopService(Intent(this, RtspServer::class.java))
+        stopService(Intent(this, RtspServerService::class.java))
     }
 
     @SuppressLint("ApplySharedPref", "SetTextI18n")
@@ -168,18 +155,17 @@ class WebServerViewActivity : AppCompatActivity(), Session.Callback {
 
             // Sets the port of the RTSP server to 1234
             val editor = PreferenceManager.getDefaultSharedPreferences(this).edit()
-            editor.putString(RtspServer.KEY_PORT, DEFAULT_STREAMING_SERVER_PORT)
+            editor.putString(RtspServerService.KEY_PORT, DEFAULT_STREAMING_SERVER_PORT)
             editor.commit()
 
             startSession()
 
-            startService(Intent(this, RtspServer::class.java))
+            startService(Intent(this, RtspServerService::class.java))
 
 
             val streamingUrl =
                 "rtsp://${localIp}:$DEFAULT_STREAMING_SERVER_PORT"
 
-            Log.d("xxx", "initializing server")
 
             WebServer.getInstance(
                 port = DEFAULT_WEBSERVER_PORT,

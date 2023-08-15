@@ -121,7 +121,7 @@
             android:name=".displayexample.DisplayService"
             android:foregroundServiceType="mediaProjection" />
 
-        <service android:name="com.river.libstreaming.rtsp.RtspServer" android:foregroundServiceType="camera"  />
+        <service android:name="com.river.libstreaming.rtsp.RtspServerService" android:foregroundServiceType="camera"  />
 
     </application>
 

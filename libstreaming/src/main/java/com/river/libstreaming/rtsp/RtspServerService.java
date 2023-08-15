@@ -60,7 +60,7 @@ import java.util.regex.Pattern;
  * For each connected client, a Session is instantiated.
  * The Session will start or stop streams according to what the client wants.
  */
-public class RtspServer extends Service {
+public class RtspServerService extends Service {
 
     public final static String TAG = "RtspServer";
 
@@ -122,7 +122,7 @@ public class RtspServer extends Service {
     private String mPassword;
 
 
-    public RtspServer() {
+    public RtspServerService() {
     }
 
     /**
@@ -133,12 +133,12 @@ public class RtspServer extends Service {
         /**
          * Called when an error occurs.
          */
-        void onError(RtspServer server, Exception e, int error);
+        void onError(RtspServerService server, Exception e, int error);
 
         /**
          * Called when streaming starts/stops.
          */
-        void onMessage(RtspServer server, int message);
+        void onMessage(RtspServerService server, int message);
 
     }
 
@@ -317,8 +317,8 @@ public class RtspServer extends Service {
      * The Binder you obtain when a connection with the Service is established.
      */
     public class LocalBinder extends Binder {
-        public RtspServer getService() {
-            return RtspServer.this;
+        public RtspServerService getService() {
+            return RtspServerService.this;
         }
     }
 
