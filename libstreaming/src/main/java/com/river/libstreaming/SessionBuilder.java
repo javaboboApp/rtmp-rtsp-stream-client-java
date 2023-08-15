@@ -100,7 +100,7 @@ public class SessionBuilder {
 	 * @return The new Session
 	 * @throws IOException 
 	 */
-	public Session build() {
+	public Session build(Context context) {
 		Session session;
 
 		session = new Session();
@@ -135,6 +135,7 @@ public class SessionBuilder {
 
 		if (session.getVideoTrack()!=null) {
 			VideoStream video = session.getVideoTrack();
+			video.setContext(context);
 			video.setFlashState(mFlash);
 			video.setVideoQuality(mVideoQuality);
 			video.setSurfaceView(mSurfaceView);

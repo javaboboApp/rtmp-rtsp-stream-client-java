@@ -27,6 +27,7 @@ import static com.river.libstreaming.SessionBuilder.VIDEO_H264;
 import static com.river.libstreaming.SessionBuilder.VIDEO_NONE;
 
 import android.content.ContentValues;
+import android.content.Context;
 import android.hardware.Camera.CameraInfo;
 
 import com.river.libstreaming.MediaStream;
@@ -61,7 +62,7 @@ public class UriParser {
 	 * @throws IOException
 	 * @return A Session configured according to the URI
 	 */
-	public static Session parse(String uri) throws IllegalStateException, IOException {
+	public static Session parse(String uri, Context context) throws IllegalStateException, IOException {
 		SessionBuilder builder = SessionBuilder.getInstance().clone();
 		byte audioApi = 0, videoApi = 0;
 
@@ -204,7 +205,7 @@ public class UriParser {
 			builder.setAudioEncoder(b.getAudioEncoder());
 		}
 
-		Session session = builder.build();
+		Session session = builder.build(context);
 
 		if (videoApi>0 && session.getVideoTrack() != null) {
 			session.getVideoTrack().setStreamingMethod(videoApi);

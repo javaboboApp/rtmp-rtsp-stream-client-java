@@ -2,6 +2,8 @@ package com.river.apollo.webserver
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.graphics.PixelFormat
+import android.os.Build
 import android.os.Bundle
 import android.preference.PreferenceManager
 import android.util.Log
@@ -41,7 +43,7 @@ class WebServerViewActivity : AppCompatActivity(), Session.Callback {
     companion object {
         const val DEFAULT_WEBSERVER_DELAY = 200L
         const val HIDE_CONTROL_TIMEOUT = 10_000L
-        const val CAMERA_PERMISSION_REQUEST_CODE =123
+        const val CAMERA_PERMISSION_REQUEST_CODE = 123
         const val DEFAULT_WEBSERVER_PORT = 8080
         const val DEFAULT_STREAMING_SERVER_PORT = "8281"
     }
@@ -205,6 +207,8 @@ class WebServerViewActivity : AppCompatActivity(), Session.Callback {
     }
 
     private fun startSession() {
+
+
         SessionBuilder.getInstance()
             .setSurfaceView(surfaceView)
             .setPreviewOrientation(90)
@@ -222,7 +226,7 @@ class WebServerViewActivity : AppCompatActivity(), Session.Callback {
 
     @SuppressLint("SetTextI18n")
     override fun onSessionError(reason: Int, streamType: Int, e: Exception?) {
-        Log.e("error","reason $reason onSessionError", e)
+        Log.e("error", "reason $reason onSessionError", e)
         findViewById<TextView>(R.id.session_tv).text = "(session_status: error($reason))"
     }
 
