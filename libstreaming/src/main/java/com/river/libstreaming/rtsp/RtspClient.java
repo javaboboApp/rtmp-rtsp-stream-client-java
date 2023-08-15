@@ -142,7 +142,7 @@ public class RtspClient {
 		mState = STATE_STOPPED;
 
 		final Semaphore signal = new Semaphore(0);
-		new HandlerThread("net.majorkernelpanic.streaming.RtspClient"){
+		new HandlerThread("com.river.libstreaming.rtsp.RtspClient"){
 			@Override
 			protected void onLooperPrepared() {
 				mHandler = new Handler();
