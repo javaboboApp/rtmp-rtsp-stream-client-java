@@ -2,8 +2,6 @@ package com.river.apollo.webserver
 
 import android.annotation.SuppressLint
 import android.content.Intent
-import android.graphics.PixelFormat
-import android.os.Build
 import android.os.Bundle
 import android.preference.PreferenceManager
 import android.util.Log
@@ -20,8 +18,10 @@ import com.river.apollo.R
 import com.river.apollo.utils.NetworkUtils
 import com.river.libstreaming.Session
 import com.river.libstreaming.SessionBuilder
+import com.river.libstreaming.audio.AudioQuality
 import com.river.libstreaming.gl.SurfaceView
 import com.river.libstreaming.rtsp.RtspServerService
+import com.river.libstreaming.video.VideoQuality
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.Job
@@ -32,19 +32,17 @@ import java.io.IOException
 
 private const val TAG = "WebServerViewActivity"
 
-class WebServerViewActivity : AppCompatActivity(), Session.Callback {
+class LocalWebServerActivity : AppCompatActivity(), Session.Callback {
 
     private var hideControlJob: Job? = null
     private var session: Session? = null
-    private var webServer: WebServer? = null
     private lateinit var surfaceView: SurfaceView
     private lateinit var localIp: String
 
     companion object {
-        const val DEFAULT_WEBSERVER_DELAY = 200L
+        const val DEFAULT_WEBSERVER_DELAY = 500L
         const val HIDE_CONTROL_TIMEOUT = 10_000L
-        const val CAMERA_PERMISSION_REQUEST_CODE = 123
-        const val DEFAULT_WEBSERVER_PORT = 8080
+        const val DEFAULT_WEBSERVER_PORT = 0
         const val DEFAULT_STREAMING_SERVER_PORT = "8281"
     }
 
@@ -57,10 +55,16 @@ class WebServerViewActivity : AppCompatActivity(), Session.Callback {
         initViews()
         CoroutineScope(Main).launch {
             delay(DEFAULT_WEBSERVER_DELAY)
-            startWebServer()
+            startLocalWebServer()
+            startRstServerInService()
         }
         hideControlsAfterTimeout()
 
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        stopAll()
     }
 
     private fun hideControlsAfterTimeout() {
@@ -93,9 +97,6 @@ class WebServerViewActivity : AppCompatActivity(), Session.Callback {
     @SuppressLint("SetTextI18n")
     private fun initViews() {
         surfaceView = findViewById(R.id.surfaceView)
-        val webServerUrl =
-            "(webServerIp: http://$localIp:$DEFAULT_WEBSERVER_PORT, rtsp_server: rtsp://${localIp}:$DEFAULT_STREAMING_SERVER_PORT)"
-        findViewById<TextView>(R.id.ip_tv).text = webServerUrl
     }
 
 
@@ -118,13 +119,15 @@ class WebServerViewActivity : AppCompatActivity(), Session.Callback {
 
         findViewById<ImageView>(R.id.start_webserver_bt).setOnClickListener {
             // Start the server
-            startWebServer()
+            startLocalWebServer()
+            webServerStartedState()
             hideControlsAfterTimeout()
         }
 
         findViewById<ImageView>(R.id.stop_webserver_bt).setOnClickListener {
             // Stop the server
-            stopAll()
+            stopWebServer()
+            weServerStoppedState()
             hideControlsAfterTimeout()
         }
 
@@ -134,45 +137,42 @@ class WebServerViewActivity : AppCompatActivity(), Session.Callback {
 
         findViewById<ImageView>(R.id.switch_camera).setOnClickListener {
             session?.switchCamera()
-            Log.d("xxx", "clicking $session")
-
             hideControlsAfterTimeout()
         }
     }
 
-    @SuppressLint("SetTextI18n")
 
+    @SuppressLint("SetTextI18n")
     private fun stopAll() {
-        findViewById<TextView>(R.id.webserver_tv).text = "(webserver_status: stopped)"
+        stopRstServer()
+        stopWebServer()
+    }
+
+    private fun stopRstServer() {
         session?.stop()
         session = null
-        WebServer.getInstance()?.stop()
-        WebServer.nullify()
         stopService(Intent(this, RtspServerService::class.java))
     }
 
+    private fun stopWebServer() {
+        WebServer.getInstance()?.stop()
+        WebServer.nullify()
+    }
+
     @SuppressLint("ApplySharedPref", "SetTextI18n")
-    private fun startWebServer() {
+    private fun startLocalWebServer() {
         try {
-
-            // Sets the port of the RTSP server to 1234
-            val editor = PreferenceManager.getDefaultSharedPreferences(this).edit()
-            editor.putString(RtspServerService.KEY_PORT, DEFAULT_STREAMING_SERVER_PORT)
-            editor.commit()
-
-            startSession()
-
-            startService(Intent(this, RtspServerService::class.java))
 
 
             val streamingUrl =
                 "rtsp://${localIp}:$DEFAULT_STREAMING_SERVER_PORT"
 
 
-            WebServer.getInstance(
+            val webServer = WebServer.getInstance(
                 port = DEFAULT_WEBSERVER_PORT,
                 streamingUrl = streamingUrl
-            ).setListener(object : WebServer.Listener {
+            )
+            webServer.setListener(object : WebServer.Listener {
                 override fun onPauseStreaming() {
 
                 }
@@ -187,41 +187,67 @@ class WebServerViewActivity : AppCompatActivity(), Session.Callback {
 
                 override fun closeActivity() {
                     runOnUiThread {
-                        this@WebServerViewActivity.finish() // Finish the activity on the UI thread
+                        this@LocalWebServerActivity.finish() // Finish the activity on the UI thread
                     }
 
                 }
 
                 override fun stopStreaming() {
-                    stopAll()
+                    stopRstServer()
                 }
 
             })
 
+            webServer.start()
+
+
+            val webServerUrl =
+                "(webServerIp: http://$localIp:${webServer.listeningPort}, rtsp_server: rtsp://${localIp}:$DEFAULT_STREAMING_SERVER_PORT)"
+            findViewById<TextView>(R.id.ip_tv).text = webServerUrl
+
+
             findViewById<TextView>(R.id.webserver_tv).text = "(webserver_status: started)"
 
+            webServerStartedState()
 
         } catch (e: IOException) {
             e.printStackTrace()
         }
     }
 
+    private fun startRstServerInService() {
+        //make sure that we stop rtsp server
+        stopRstServer()
+        // Sets the port of the RTSP server to 1234
+        val editor = PreferenceManager.getDefaultSharedPreferences(this).edit()
+        editor.putString(RtspServerService.KEY_PORT, DEFAULT_STREAMING_SERVER_PORT)
+        editor.commit()
+        startSession()
+        startService(Intent(this, RtspServerService::class.java))
+    }
+
     private fun startSession() {
-
-
         SessionBuilder.getInstance()
-            .setSurfaceView(surfaceView)
-            .setPreviewOrientation(90)
+            .setCallback(this)
             .setContext(applicationContext)
-            .setAudioEncoder(SessionBuilder.AUDIO_NONE)
+            .setAudioQuality(AudioQuality(16000, 32000))
+            .setVideoQuality(VideoQuality(320, 240, 20, 800000))
+            .setAudioEncoder(SessionBuilder.AUDIO_AAC)
             .setVideoEncoder(SessionBuilder.VIDEO_H264)
 
+    }
+
+    private fun showProgress() {
+        findViewById<View>(R.id.progress).isVisible = true
+    }
+
+    private fun hideProgress() {
+        findViewById<View>(R.id.progress).isVisible = false
     }
 
     @SuppressLint("SetTextI18n")
     override fun onBitrateUpdate(bitrate: Long) {
         findViewById<TextView>(R.id.tv_bitrate).text = "(bitrate: $bitrate)"
-
     }
 
     @SuppressLint("SetTextI18n")
@@ -231,38 +257,43 @@ class WebServerViewActivity : AppCompatActivity(), Session.Callback {
     }
 
     override fun onPreviewStarted() {
-
     }
 
     override fun onSessionConfigured() {
-
-    }
-
-    override fun onSessionStarted() {
-        sessionStartedState()
-    }
-
-    override fun onSessionStopped() {
-        sessionStoppedState()
     }
 
     @SuppressLint("SetTextI18n")
-    private fun sessionStartedState() {
+    override fun onSessionStarted() {
+        hideProgress()
+        findViewById<TextView>(R.id.explanation_tv).isVisible = false
+        findViewById<TextView>(R.id.session_tv).text = "(session_status: started)"
+    }
+
+    @SuppressLint("SetTextI18n")
+    override fun onSessionStopped() {
+        hideProgress()
+        findViewById<TextView>(R.id.session_tv).text = "(session_status: stopped)"
+        findViewById<TextView>(R.id.explanation_tv).isVisible = true
+
+    }
+
+    @SuppressLint("SetTextI18n")
+    private fun webServerStartedState() {
         findViewById<ImageView>(R.id.start_webserver_bt)
             .setBackgroundResource(R.drawable.gray_state_button_bg)
         findViewById<ImageView>(R.id.stop_webserver_bt)
             .setBackgroundResource(R.drawable.stop_server_button_bg)
-        findViewById<TextView>(R.id.session_tv).text = "(session_status: started)"
-
+        findViewById<TextView>(R.id.webserver_tv).text = "(webserver_status: started)"
     }
 
     @SuppressLint("SetTextI18n")
-    private fun sessionStoppedState() {
+    private fun weServerStoppedState() {
         findViewById<ImageView>(R.id.start_webserver_bt)
             .setBackgroundResource(R.drawable.run_state_button_bg)
         findViewById<ImageView>(R.id.stop_webserver_bt)
             .setBackgroundResource(R.drawable.gray_state_button_bg)
-        findViewById<TextView>(R.id.session_tv).text = "(session_status: stopped)"
+        findViewById<TextView>(R.id.webserver_tv).text = "(webserver_status: stopped)"
+
     }
 
 

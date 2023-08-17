@@ -57,6 +57,7 @@ import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
@@ -306,7 +307,6 @@ public abstract class VideoStream extends MediaStream {
      * Stops the stream.
      */
     public synchronized void stop() {
-        mSurfaceView = null;
         if (mCamera != null) {
             if (mMode == MODE_MEDIACODEC_API) {
                 mCamera.setPreviewCallbackWithBuffer(null);
@@ -326,6 +326,7 @@ public abstract class VideoStream extends MediaStream {
                 }
             }
         }
+
     }
 
     public synchronized void startPreview()
@@ -596,12 +597,7 @@ public abstract class VideoStream extends MediaStream {
     protected synchronized void createCamera() throws RuntimeException {
         if (mSurfaceView == null || !mSurfaceView.isAttachedToWindow())
         {
-            new Handler(Looper.getMainLooper()).post(new Runnable() {
-                @Override
-                public void run() {
-                    mSurfaceView = createFakeSurfaceView();
-                }
-            });
+            setSurfaceView(createFakeSurfaceView());
         }
         if (mSurfaceView.getHolder() == null || !mSurfaceReady)
             throw new InvalidSurfaceException("Invalid surface !");
@@ -659,6 +655,10 @@ public abstract class VideoStream extends MediaStream {
     }
 
     private SurfaceView createFakeSurfaceView() {
+        if (Looper.myLooper() == null)
+        {
+            Looper.prepare();
+        }
         //create fake camera view
         try {
 

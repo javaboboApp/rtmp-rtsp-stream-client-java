@@ -46,6 +46,7 @@ class WebServer(port: Int, private val streamingUrl: String) :
         fun stopStreaming()
     }
 
+
     override fun serve(session: IHTTPSession): Response {
         val uri = session.uri
 

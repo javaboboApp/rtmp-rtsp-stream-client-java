@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:clickable="true"
     android:focusable="true"
-    tools:context="com.river.apollo.webserver.WebServerViewActivity">
+    tools:context="com.river.apollo.webserver.LocalWebServerActivity">
 
     <androidx.drawerlayout.widget.DrawerLayout
         android:id="@+id/activity_custom"
@@ -24,6 +24,28 @@
                 android:layout_height="match_parent"
                 tools:layout_editor_absoluteX="0dp"
                 tools:layout_editor_absoluteY="0dp" />
+
+            <com.google.android.material.progressindicator.CircularProgressIndicator
+                android:id="@+id/progress"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                android:indeterminate="true"
+                app:layout_constraintBottom_toBottomOf="@+id/surfaceView"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="@+id/surfaceView"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/explanation_tv"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/go_to_rtsp_and_create_first_connection"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="@+id/surfaceView"
+                app:layout_constraintStart_toStartOf="parent"
+                android:textColor="@color/white"
+                app:layout_constraintTop_toTopOf="parent" />
 
             <RelativeLayout
                 android:layout_width="match_parent"
@@ -117,7 +139,7 @@
                     android:layout_width="50dp"
                     android:layout_height="50dp"
                     android:layout_margin="20dp"
-                    android:background="@drawable/gray_state_button_bg"
+                    android:background="@drawable/run_state_button_bg"
                     android:src="@drawable/baseline_play_arrow_24"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toEndOf="@+id/stop_webserver_bt" />
@@ -127,7 +149,7 @@
                     android:layout_width="50dp"
                     android:layout_height="50dp"
                     android:layout_margin="20dp"
-                    android:background="@drawable/stop_server_button_bg"
+                    android:background="@drawable/gray_state_button_bg"
                     android:src="@drawable/baseline_stop_24"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toStartOf="parent" />

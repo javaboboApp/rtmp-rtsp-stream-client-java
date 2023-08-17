@@ -1,5 +1,9 @@
 package com.river.apollo;
 
+import static android.os.Build.VERSION_CODES.JELLY_BEAN;
+import static android.os.Build.VERSION_CODES.JELLY_BEAN_MR2;
+import static android.os.Build.VERSION_CODES.LOLLIPOP;
+
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -7,27 +11,24 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
-
-import androidx.annotation.RequiresApi;
-import androidx.core.app.ActivityCompat;
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.GridView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.annotation.RequiresApi;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+
 import com.river.apollo.customexample.RtspActivity;
 import com.river.apollo.utils.ActivityLink;
 import com.river.apollo.utils.ImageAdapter;
-import com.river.apollo.webserver.WebServerViewActivity;
+import com.river.apollo.webserver.LocalWebServerActivity;
+import com.river.libstreaming.utils.CamaraUtils;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static android.os.Build.VERSION_CODES.JELLY_BEAN;
-import static android.os.Build.VERSION_CODES.JELLY_BEAN_MR2;
-import static android.os.Build.VERSION_CODES.LOLLIPOP;
 
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemClickListener {
 
@@ -71,6 +72,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         ActivityCompat.requestPermissions(this, PERMISSIONS, 1);
       }
     }
+
+    if(!CamaraUtils.INSTANCE.canOverDrawOtherApps(this)){
+       CamaraUtils.INSTANCE.openDrawOverPermissionSetting(this);
+    }
   }
 
   @SuppressLint("NewApi")
@@ -80,7 +85,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     activities.add(new ActivityLink(new Intent(this, RtspActivity.class),
         getString(R.string.rtsp_streamer), JELLY_BEAN));
 
-    activities.add(new ActivityLink(new Intent(this, WebServerViewActivity.class),
+    activities.add(new ActivityLink(new Intent(this, LocalWebServerActivity.class),
             getString(R.string.local_server), JELLY_BEAN));
 
     activities.add(new ActivityLink(new Intent(this, RtspActivity.class),

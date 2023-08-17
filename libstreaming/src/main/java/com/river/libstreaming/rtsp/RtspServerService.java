@@ -292,7 +292,9 @@ public class RtspServerService extends Service {
     @Override
     public void onDestroy() {
         stop();
-        mSharedPreferences.unregisterOnSharedPreferenceChangeListener(mOnSharedPreferenceChangeListener);
+       if( mSharedPreferences != null){
+           mSharedPreferences.unregisterOnSharedPreferenceChangeListener(mOnSharedPreferenceChangeListener);
+       }
     }
 
     private OnSharedPreferenceChangeListener mOnSharedPreferenceChangeListener = new OnSharedPreferenceChangeListener() {

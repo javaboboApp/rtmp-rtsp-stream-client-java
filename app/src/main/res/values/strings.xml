@@ -113,4 +113,5 @@
   <string name="screen">Screen</string>
   <string name="internal">Internal</string>
     <string name="run_web_server">Run</string>
+    <string name="go_to_rtsp_and_create_first_connection">Explore RTSP and Establish Your Initial Connection!!</string>
 </resources>
