@@ -229,6 +229,7 @@ class LocalWebServerActivity : AppCompatActivity(), Session.Callback {
     private fun startSession() {
         SessionBuilder.getInstance()
             .setCallback(this)
+            .setSurfaceView(surfaceView)
             .setContext(applicationContext)
             .setAudioQuality(AudioQuality(16000, 32000))
             .setVideoQuality(VideoQuality(320, 240, 20, 800000))

@@ -88,11 +88,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     activities.add(new ActivityLink(new Intent(this, LocalWebServerActivity.class),
             getString(R.string.local_server), JELLY_BEAN));
 
-    activities.add(new ActivityLink(new Intent(this, RtspActivity.class),
-            getString(R.string.settings), JELLY_BEAN));
-
-    activities.add(new ActivityLink(new Intent(this, RtspActivity.class),
-            getString(R.string.faqs), JELLY_BEAN));
   }
 
   private void setListAdapter(List<ActivityLink> activities) {
